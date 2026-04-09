@@ -8,6 +8,7 @@ import (
 	"articnexus/backend/pkg/logger"
 
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
 // SeedSuperAdmin ensures a super-admin user exists in the database.
