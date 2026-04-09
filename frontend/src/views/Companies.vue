@@ -689,11 +689,11 @@
 
     <!-- Confirm unassign individual role -->
     <Teleport to="body">
-      <div v-if="removeRoleTarget" class="an-overlay" @click.self="removeRoleTarget = null">
+      <div v-if="removeRoleTarget" class="an-overlay" @click.self="removeRoleTarget = null; removeRoleError = ''">
         <div class="an-modal an-modal--sm">
           <div class="an-modal-header">
             <h2 class="text-base font-semibold text-slate-900">Desasignar rol</h2>
-            <button @click="removeRoleTarget = null" class="an-close-btn">&times;</button>
+            <button @click="removeRoleTarget = null; removeRoleError = ''" class="an-close-btn">&times;</button>
           </div>
           <div class="an-modal-body">
             <p class="text-sm text-slate-600">
@@ -702,8 +702,9 @@
               en <span class="font-semibold text-slate-900">{{ removeRoleTarget?.role?.branchName }}</span>
               a <span class="font-semibold text-slate-900">{{ personFullName(removeRoleTarget?.person?.person) }}</span>?
             </p>
+            <div v-if="removeRoleError" class="mt-3 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{{ removeRoleError }}</div>
             <div class="an-modal-footer">
-              <button @click="removeRoleTarget = null" class="an-btn-ghost">Cancelar</button>
+              <button @click="removeRoleTarget = null; removeRoleError = ''" class="an-btn-ghost">Cancelar</button>
               <button @click="doRemoveUserRole" :disabled="removingRole" class="an-btn-danger">{{ removingRole ? 'Quitando…' : 'Desasignar' }}</button>
             </div>
           </div>
@@ -1298,23 +1299,27 @@ function confirmRemovePerson(cu) {
 // ── Remove individual role from a person ─────────────────────────────────────
 const removeRoleTarget = ref(null) // { person: CompanyUser, role: CompanyUserRoleResponse }
 const removingRole     = ref(false)
+const removeRoleError  = ref('')
 
 function confirmRemoveRole(cu, role) {
+  removeRoleError.value = ''
   removeRoleTarget.value = { person: cu, role }
 }
 
 async function doRemoveUserRole() {
   removingRole.value = true
+  removeRoleError.value = ''
   const { person, role } = removeRoleTarget.value
   try {
     await api.delete(
       `/companies/${selected.value.id}/users/${person.id}/roles`,
-      { data: { branchId: role.branchId, roleId: role.roleId } },
+      { params: { branchId: role.branchId, roleId: role.roleId } },
     )
     removeRoleTarget.value = null
     await loadCompanyUsers()
-  } catch {
-    removeRoleTarget.value = null
+  } catch (err) {
+    const msg = err?.response?.data?.message
+    removeRoleError.value = msg || 'No se pudo quitar el rol. Intente de nuevo.'
   } finally {
     removingRole.value = false
   }

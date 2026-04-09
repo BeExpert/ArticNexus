@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"strconv"
 
 	"articnexus/backend/internal/domain"
 	"articnexus/backend/internal/service"
@@ -321,7 +322,7 @@ func (h *CompanyHandler) AssignUserRole(w http.ResponseWriter, r *http.Request) 
 }
 
 // RemoveUserRole godoc
-// DELETE /api/v1/companies/{id}/users/{userId}/roles
+// DELETE /api/v1/companies/{id}/users/{userId}/roles?branchId=X&roleId=Y
 func (h *CompanyHandler) RemoveUserRole(w http.ResponseWriter, r *http.Request) {
 	companyID, ok := urlParamInt64(w, r, "id")
 	if !ok {
@@ -331,12 +332,22 @@ func (h *CompanyHandler) RemoveUserRole(w http.ResponseWriter, r *http.Request) 
 	if !ok {
 		return
 	}
-	var req domain.AssignUserRoleRequest
-	if !decodeJSON(w, r, &req) {
+
+	q := r.URL.Query()
+	branchID, err := strconv.ParseInt(q.Get("branchId"), 10, 64)
+	if err != nil || branchID == 0 {
+		renderBadRequest(w, "missing or invalid branchId query parameter")
 		return
 	}
+	roleID, err := strconv.ParseInt(q.Get("roleId"), 10, 64)
+	if err != nil || roleID == 0 {
+		renderBadRequest(w, "missing or invalid roleId query parameter")
+		return
+	}
+
+	req := domain.AssignUserRoleRequest{BranchID: branchID, RoleID: roleID}
 	if err := h.companyService.RemoveUserRole(companyID, userID, req); err != nil {
-		renderInternalError(w)
+		renderAppError(w, err)
 		return
 	}
 	renderOK(w, nil, "role removed from user")

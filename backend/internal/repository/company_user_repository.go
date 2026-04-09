@@ -78,8 +78,15 @@ func (r *companyUserRepository) AssignUserRole(ur domain.UserRole) error {
 }
 
 func (r *companyUserRepository) RemoveUserRole(ur domain.UserRole) error {
-	return r.db.
+	result := r.db.
 		Where("usr_id = ? AND com_id = ? AND bra_id = ? AND rol_id = ?",
 			ur.UserID, ur.CompanyID, ur.BranchID, ur.RoleID).
-		Delete(&domain.UserRole{}).Error
+		Delete(&domain.UserRole{})
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return domain.NewAppError(404, domain.ErrCodeNotFound, "role assignment not found")
+	}
+	return nil
 }

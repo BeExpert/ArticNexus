@@ -44,6 +44,7 @@ type companyService struct {
 	roleRepo        repository.RoleRepository
 	personRepo      repository.PersonRepository
 	userRepo        repository.UserRepository
+	superAdminUser  string
 }
 
 // NewCompanyService returns a CompanyService implementation.
@@ -55,6 +56,7 @@ func NewCompanyService(
 	roleRepo repository.RoleRepository,
 	personRepo repository.PersonRepository,
 	userRepo repository.UserRepository,
+	superAdminUser string,
 ) CompanyService {
 	return &companyService{
 		db:              db,
@@ -64,6 +66,7 @@ func NewCompanyService(
 		roleRepo:        roleRepo,
 		personRepo:      personRepo,
 		userRepo:        userRepo,
+		superAdminUser:  superAdminUser,
 	}
 }
 
@@ -451,6 +454,13 @@ func (s *companyService) AssignUserRole(companyID, userID int64, req domain.Assi
 }
 
 func (s *companyService) RemoveUserRole(companyID, userID int64, req domain.AssignUserRoleRequest) error {
+	// Protect the bootstrap super-admin: no one can touch their roles.
+	if s.superAdminUser != "" {
+		user, err := s.userRepo.FindByID(userID)
+		if err == nil && user.Username == s.superAdminUser {
+			return domain.ErrForbidden("no se pueden modificar los roles del super administrador")
+		}
+	}
 	return s.companyUserRepo.RemoveUserRole(domain.UserRole{
 		UserID:    userID,
 		CompanyID: companyID,

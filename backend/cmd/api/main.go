@@ -129,7 +129,7 @@ func main() {
 	emailSvc := service.NewEmailService(cfg)
 	authSvc := service.NewAuthService(userRepo, personRepo, moduleRepo, resetRepo, emailSvc, cfg, cfg.JWTSecret, cfg.SuperAdminUser)
 	userSvc := service.NewUserService(database, userRepo, personRepo, companyUserRepo, emailSvc, cfg)
-	companySvc := service.NewCompanyService(database, companyRepo, branchRepo, companyUserRepo, roleRepo, personRepo, userRepo)
+	companySvc := service.NewCompanyService(database, companyRepo, branchRepo, companyUserRepo, roleRepo, personRepo, userRepo, cfg.SuperAdminUser)
 	appSvc := service.NewApplicationService(appRepo, moduleRepo)
 	roleSvc := service.NewRoleService(roleRepo, appRepo)
 	demoLinkSvc := service.NewDemoLinkService(demoLinkRepo, cfg.JWTSecret, emailSvc, cfg)
