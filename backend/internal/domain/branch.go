@@ -9,7 +9,7 @@ type Branch struct {
 	Code        string  `gorm:"column:bra_code;not null"`
 	Name        string  `gorm:"column:bra_name;not null"`
 	Address     *string `gorm:"column:bra_address"`
-	PhoneNumber *string `gorm:"column:bra_phonenumber"`
+	PhoneNumber *string `gorm:"column:bra_phoneNumber"`
 	Email       *string `gorm:"column:bra_email"`
 	Status      string  `gorm:"column:bra_status;not null;default:active"`
 	AuditFields

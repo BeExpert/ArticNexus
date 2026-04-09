@@ -72,9 +72,9 @@
           </div>
           <!-- Inline actions — visible only for selected company when user has edit/delete perms -->
           <div v-if="selected?.id === c.id && authStore.canAny('empresas.editar', 'empresas.eliminar')" class="bg-slate-800 border-b border-slate-700 px-3 py-2 flex items-center gap-2">
-            <button v-if="authStore.can('empresas.editar')" @click.stop="openEditCompany" class="flex-1 text-center text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-700 rounded py-1.5 transition-colors">Editar</button>
+            <button v-if="authStore.can('empresas.editar')" @click.stop="openEditCompany" title="Editar" class="p-1.5 rounded text-slate-300 hover:text-white hover:bg-slate-700 transition-colors"><Pencil :size="15" /></button>
             <div v-if="authStore.can('empresas.editar') && authStore.can('empresas.eliminar')" class="w-px h-4 bg-slate-600 shrink-0"></div>
-            <button v-if="authStore.can('empresas.eliminar')" @click.stop="confirmDeleteCompany(selected)" class="flex-1 text-center text-xs font-medium text-red-400 hover:text-red-300 hover:bg-slate-700 rounded py-1.5 transition-colors">Eliminar</button>
+            <button v-if="authStore.can('empresas.eliminar')" @click.stop="confirmDeleteCompany(selected)" title="Eliminar" class="p-1.5 rounded text-red-400 hover:text-red-300 hover:bg-slate-700 transition-colors"><Trash2 :size="15" /></button>
           </div>
         </div>
       </div>
@@ -201,8 +201,8 @@
                   </td>
                   <td v-if="authStore.canAny('sucursales.editar', 'sucursales.eliminar')" class="px-4 py-3">
                     <div class="flex items-center justify-end gap-2">
-                      <button v-if="authStore.can('sucursales.editar')" @click="openEditBranch(b)" class="px-3 py-1 text-xs font-medium rounded border border-slate-200 text-slate-600 hover:bg-slate-100 hover:border-slate-300 transition-colors whitespace-nowrap">Editar</button>
-                      <button v-if="authStore.can('sucursales.eliminar')" @click="confirmDeleteBranch(b)" class="px-3 py-1 text-xs font-medium rounded border border-red-100 text-red-500 hover:bg-red-50 hover:border-red-200 transition-colors whitespace-nowrap">Eliminar</button>
+                      <button v-if="authStore.can('sucursales.editar')" @click="openEditBranch(b)" title="Editar" class="p-1.5 rounded text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"><Pencil :size="15" /></button>
+                      <button v-if="authStore.can('sucursales.eliminar')" @click="confirmDeleteBranch(b)" title="Eliminar" class="p-1.5 rounded text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors"><Trash2 :size="15" /></button>
                     </div>
                   </td>
                 </tr>
@@ -247,7 +247,7 @@
                   </td>
                   <td v-if="authStore.can('roles.asignar_modulos')" class="px-4 py-3">
                     <div class="flex items-center justify-end gap-2">
-                      <button @click="openRoleModules(r)" class="px-3 py-1 text-xs font-medium rounded border border-slate-200 text-slate-600 hover:bg-slate-100 hover:border-slate-300 transition-colors whitespace-nowrap">Modulos</button>
+                      <button @click="openRoleModules(r)" title="Ver módulos" class="p-1.5 rounded text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"><Layers :size="15" /></button>
                     </div>
                   </td>
                 </tr>
@@ -307,8 +307,8 @@
                   </td>
                   <td v-if="authStore.canAny('personas.eliminar', 'roles.asignar_modulos')" class="px-4 py-3">
                     <div class="flex items-center justify-end gap-2">
-                      <button v-if="authStore.can('roles.asignar_modulos')" @click="openAssignRole(cu)" class="px-3 py-1 text-xs font-medium rounded border border-slate-200 text-slate-600 hover:bg-slate-100 hover:border-slate-300 transition-colors whitespace-nowrap">Asignar Rol</button>
-                      <button v-if="authStore.can('personas.eliminar')" @click="confirmRemovePerson(cu)" class="px-3 py-1 text-xs font-medium rounded border border-red-100 text-red-500 hover:bg-red-50 hover:border-red-200 transition-colors whitespace-nowrap">Quitar</button>
+                      <button v-if="authStore.can('roles.asignar_modulos')" @click="openAssignRole(cu)" title="Asignar rol" class="p-1.5 rounded text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"><UserPlus :size="15" /></button>
+                      <button v-if="authStore.can('personas.eliminar')" @click="confirmRemovePerson(cu)" title="Quitar de la empresa" class="p-1.5 rounded text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors"><UserMinus :size="15" /></button>
                     </div>
                   </td>
                 </tr>
@@ -784,6 +784,7 @@ import { branchService } from '@/services/branchService'
 import { useAuthStore } from '@/store/auth'
 import api from '@/services/api'
 import { te, teError } from '@/i18n'
+import { Pencil, Trash2, Layers, UserPlus, UserMinus } from 'lucide-vue-next'
 
 const authStore = useAuthStore()
 

@@ -66,9 +66,9 @@
             </div>
             <h3 class="text-xl font-bold text-dark-gray mb-3">Proponer un proyecto</h3>
             <p class="text-cool-gray text-sm leading-relaxed mb-5">
-              Tenés una idea de producto o sistema y buscás un equipo técnico
-              para desarrollarla. Nos contás la visión, evaluamos el alcance
-              y arrancamos juntos si hay fit.
+              Tiene una idea de producto o sistema y busca un equipo técnico
+              para desarrollarla. Nos comparte su visión, evaluamos el alcance
+              y avanzamos juntos si hay buena compatibilidad.
             </p>
             <ul class="space-y-2 text-sm text-cool-gray">
               <li class="flex items-center gap-2">

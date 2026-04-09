@@ -77,17 +77,15 @@
                   <button
                     v-else-if="l.isActive && !isExpired(l.expiresAt)"
                     @click="copyLink(l)"
-                    class="an-btn-secondary text-xs py-1 px-3"
-                  >
-                    Copiar URL
-                  </button>
+                    title="Copiar URL"
+                    class="p-1.5 rounded text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"
+                  ><Copy :size="15" /></button>
                   <button
                     v-if="authStore.can('demo_links.eliminar') && l.isActive"
                     @click="confirmRevoke(l)"
-                    class="text-xs text-red-500 hover:text-red-700 transition-colors"
-                  >
-                    Revocar
-                  </button>
+                    title="Revocar"
+                    class="p-1.5 rounded text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                  ><Ban :size="15" /></button>
                 </div>
               </td>
             </tr>
@@ -291,6 +289,7 @@ import { ref, watch, onMounted } from 'vue'
 import { useAuthStore } from '@/store/auth'
 import api from '@/services/api'
 import { te, teError } from '@/i18n'
+import { Copy, Ban } from 'lucide-vue-next'
 
 const authStore = useAuthStore()
 

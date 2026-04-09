@@ -128,7 +128,7 @@ func main() {
 	// ── Services ─────────────────────────────────────────────────────────────
 	emailSvc := service.NewEmailService(cfg)
 	authSvc := service.NewAuthService(userRepo, personRepo, moduleRepo, resetRepo, emailSvc, cfg, cfg.JWTSecret, cfg.SuperAdminUser)
-	userSvc := service.NewUserService(database, userRepo, personRepo, companyUserRepo)
+	userSvc := service.NewUserService(database, userRepo, personRepo, companyUserRepo, emailSvc, cfg)
 	companySvc := service.NewCompanyService(database, companyRepo, branchRepo, companyUserRepo, roleRepo, personRepo, userRepo)
 	appSvc := service.NewApplicationService(appRepo, moduleRepo)
 	roleSvc := service.NewRoleService(roleRepo, appRepo)

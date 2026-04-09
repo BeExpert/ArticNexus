@@ -28,7 +28,9 @@
           <span v-if="statsLoading" class="inline-block w-10 h-7 bg-slate-100 rounded animate-pulse"></span>
           <span v-else>{{ card.value }}</span>
         </p>
-        <div class="absolute bottom-3 right-4 text-4xl font-black opacity-[0.06]" :class="card.color">{{ card.icon }}</div>
+        <div class="absolute bottom-3 right-4 opacity-[0.06]" :class="card.color">
+          <component :is="card.icon" :size="48" />
+        </div>
       </div>
     </div>
 
@@ -40,8 +42,8 @@
         :to="link.to"
         class="group flex items-center gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm hover:shadow-md hover:border-indigo-200 hover:-translate-y-0.5 transition-all"
       >
-        <div class="w-10 h-10 rounded-lg flex items-center justify-center text-lg shrink-0 transition-colors" :class="link.iconBg">
-          {{ link.icon }}
+        <div class="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 transition-colors" :class="link.iconBg">
+          <component :is="link.icon" :size="20" />
         </div>
         <div>
           <p class="text-sm font-semibold text-slate-900 group-hover:text-indigo-600 transition-colors">{{ link.label }}</p>
@@ -156,7 +158,7 @@
         <!-- Empty state -->
         <div v-else class="flex flex-col items-center justify-center py-20 text-center">
           <div class="w-20 h-20 rounded-full bg-slate-800 flex items-center justify-center mb-5 border border-slate-700">
-            <span class="text-3xl">🏢</span>
+            <Building2 :size="36" class="text-slate-500" />
           </div>
           <p class="text-slate-300 font-semibold text-lg mb-1">Sin empresas asignadas</p>
           <p class="text-slate-500 text-sm max-w-xs">
@@ -181,6 +183,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/store/auth'
 import { companyService } from '@/services/companyService'
 import api from '@/services/api'
+import { User, Building2, AppWindow, KeyRound } from 'lucide-vue-next'
 
 const authStore = useAuthStore()
 
@@ -216,17 +219,17 @@ const stats        = ref({ users: 0, companies: 0, applications: 0, roles: 0 })
 const statsLoading = ref(true)
 
 const kpiCards = computed(() => [
-  { label: 'Usuarios',     value: stats.value.users,        color: 'text-indigo-600',  bg: 'linear-gradient(135deg,#6366f1,#4338ca)', icon: '👤' },
-  { label: 'Empresas',     value: stats.value.companies,    color: 'text-violet-600',  bg: 'linear-gradient(135deg,#7c3aed,#6d28d9)', icon: '🏢' },
-  { label: 'Aplicaciones', value: stats.value.applications, color: 'text-sky-600',     bg: 'linear-gradient(135deg,#0ea5e9,#0284c7)', icon: '⚡' },
-  { label: 'Roles',        value: stats.value.roles,        color: 'text-emerald-600', bg: 'linear-gradient(135deg,#10b981,#059669)', icon: '🔑' },
+  { label: 'Usuarios',     value: stats.value.users,        color: 'text-indigo-600',  bg: 'linear-gradient(135deg,#6366f1,#4338ca)', icon: User       },
+  { label: 'Empresas',     value: stats.value.companies,    color: 'text-violet-600',  bg: 'linear-gradient(135deg,#7c3aed,#6d28d9)', icon: Building2  },
+  { label: 'Aplicaciones', value: stats.value.applications, color: 'text-sky-600',     bg: 'linear-gradient(135deg,#0ea5e9,#0284c7)', icon: AppWindow  },
+  { label: 'Roles',        value: stats.value.roles,        color: 'text-emerald-600', bg: 'linear-gradient(135deg,#10b981,#059669)', icon: KeyRound   },
 ])
 
 const allQuickLinks = [
-  { to: '/companies',    label: 'Empresas',     desc: 'Gestionar empresas y sucursales', prefix: 'empresas',    icon: '🏢', iconBg: 'bg-violet-100 text-violet-600 group-hover:bg-violet-200' },
-  { to: '/users',        label: 'Usuarios',     desc: 'Administrar cuentas de usuario',  prefix: 'usuarios',    icon: '👤', iconBg: 'bg-indigo-100 text-indigo-600 group-hover:bg-indigo-200' },
-  { to: '/applications', label: 'Aplicaciones', desc: 'Configurar apps y módulos',       prefix: 'aplicaciones',icon: '⚡', iconBg: 'bg-sky-100 text-sky-600 group-hover:bg-sky-200'          },
-  { to: '/roles',        label: 'Roles',        desc: 'Gestionar roles y permisos',      prefix: 'roles',       icon: '🔑', iconBg: 'bg-emerald-100 text-emerald-600 group-hover:bg-emerald-200' },
+  { to: '/companies',    label: 'Empresas',     desc: 'Gestionar empresas y sucursales', prefix: 'empresas',    icon: Building2, iconBg: 'bg-violet-100 text-violet-600 group-hover:bg-violet-200' },
+  { to: '/users',        label: 'Usuarios',     desc: 'Administrar cuentas de usuario',  prefix: 'usuarios',    icon: User,      iconBg: 'bg-indigo-100 text-indigo-600 group-hover:bg-indigo-200' },
+  { to: '/applications', label: 'Aplicaciones', desc: 'Configurar apps y módulos',       prefix: 'aplicaciones',icon: AppWindow, iconBg: 'bg-sky-100 text-sky-600 group-hover:bg-sky-200'         },
+  { to: '/roles',        label: 'Roles',        desc: 'Gestionar roles y permisos',      prefix: 'roles',       icon: KeyRound,  iconBg: 'bg-emerald-100 text-emerald-600 group-hover:bg-emerald-200' },
 ]
 
 // Security fix: only expose quick links for sections the user can actually access

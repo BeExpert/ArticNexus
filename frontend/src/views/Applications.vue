@@ -69,9 +69,9 @@
           </div>
           <!-- Inline actions for selected app -->
           <div v-if="selected?.id === app.id && authStore.canAny('aplicaciones.editar', 'aplicaciones.eliminar')" class="bg-slate-800 border-b border-slate-700 px-3 py-2 flex items-center gap-2">
-            <button v-if="authStore.can('aplicaciones.editar')" @click.stop="openEdit(selected)" class="flex-1 text-center text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-700 rounded py-1.5 transition-colors">Editar</button>
+            <button v-if="authStore.can('aplicaciones.editar')" @click.stop="openEdit(selected)" title="Editar" class="p-1.5 rounded text-slate-300 hover:text-white hover:bg-slate-700 transition-colors"><Pencil :size="15" /></button>
             <div v-if="authStore.can('aplicaciones.editar') && authStore.can('aplicaciones.eliminar')" class="w-px h-4 bg-slate-600 shrink-0"></div>
-            <button v-if="authStore.can('aplicaciones.eliminar')" @click.stop="confirmDelete(selected)" class="flex-1 text-center text-xs font-medium text-red-400 hover:text-red-300 hover:bg-slate-700 rounded py-1.5 transition-colors">Eliminar</button>
+            <button v-if="authStore.can('aplicaciones.eliminar')" @click.stop="confirmDelete(selected)" title="Eliminar" class="p-1.5 rounded text-red-400 hover:text-red-300 hover:bg-slate-700 transition-colors"><Trash2 :size="15" /></button>
           </div>
         </div>
       </div>
@@ -178,8 +178,8 @@
                   </td>
                   <td v-if="authStore.canAny('modulos.editar', 'modulos.eliminar')" class="px-4 py-3">
                     <div class="flex items-center justify-end gap-2">
-                      <button v-if="authStore.can('modulos.editar')" @click="openEditModule(m)" class="px-3 py-1 text-xs font-medium rounded border border-slate-200 text-slate-600 hover:bg-slate-100 hover:border-slate-300 transition-colors">Editar</button>
-                      <button v-if="authStore.can('modulos.eliminar')" @click="confirmDeleteModule(m)" class="px-3 py-1 text-xs font-medium rounded border border-red-100 text-red-500 hover:bg-red-50 hover:border-red-200 transition-colors">Eliminar</button>
+                      <button v-if="authStore.can('modulos.editar')" @click="openEditModule(m)" title="Editar" class="p-1.5 rounded text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"><Pencil :size="15" /></button>
+                      <button v-if="authStore.can('modulos.eliminar')" @click="confirmDeleteModule(m)" title="Eliminar" class="p-1.5 rounded text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors"><Trash2 :size="15" /></button>
                     </div>
                   </td>
                 </tr>
@@ -342,6 +342,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/store/auth'
 import api from '@/services/api'
 import { teError } from '@/i18n'
+import { Pencil, Trash2 } from 'lucide-vue-next'
 
 const authStore = useAuthStore()
 

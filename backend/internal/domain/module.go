@@ -8,8 +8,8 @@ type Module struct {
 	ApplicationID int64   `gorm:"column:app_id;not null"`
 	Name          string  `gorm:"column:mod_name;not null"`
 	DisplayName   *string `gorm:"column:mod_display_name"`
-	MenuOption    *string `gorm:"column:mod_menuoption"`
-	SubFunction   *string `gorm:"column:mod_subfunction"`
+	MenuOption    *string `gorm:"column:mod_menuOption"`
+	SubFunction   *string `gorm:"column:mod_subFunction"`
 	Description   *string `gorm:"column:mod_description"`
 	Status        string  `gorm:"column:mod_status;not null;default:active"`
 	AuditFields

@@ -14,7 +14,7 @@
 
 - [architecture.md](architecture.md) — Visión general de capas y patrones
 
-## 🏗️ Arquitectura General
+## Arquitectura General
 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
@@ -34,46 +34,46 @@
 └─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
-## 🎯 Funcionalidades Principales
+## Funcionalidades Principales
 
 ### Gestión de Usuarios
-- ✅ Registro y autenticación
-- ✅ Perfiles de usuario
-- ✅ Gestión de sesiones
-- 🚧 Multi-factor authentication (planned)
+- Registro y autenticación
+- Perfiles de usuario
+- Gestión de sesiones
+- Multi-factor authentication (planned)
 
 ### Gestión de Roles y Permisos
-- ✅ Definición de roles
-- ✅ Asignación de permisos
-- ✅ Control de acceso basado en roles (RBAC)
-- 🚧 Permisos granulares (planned)
+- Definición de roles
+- Asignación de permisos
+- Control de acceso basado en roles (RBAC)
+- Permisos granulares (planned)
 
 ### Multi-tenancy
-- ✅ Gestión de empresas
-- ✅ Aislamiento de datos por empresa
-- ✅ Roles específicos por empresa
-- 🚧 Configuración personalizada (planned)
+- Gestión de empresas
+- Aislamiento de datos por empresa
+- Roles específicos por empresa
+- Configuración personalizada (planned)
 
 ### Gestión de Aplicaciones
-- ✅ Registro de aplicaciones
-- ✅ Módulos y funcionalidades
-- ✅ Control de acceso por aplicación
-- 🚧 SSO integration (planned)
+- Registro de aplicaciones
+- Módulos y funcionalidades
+- Control de acceso por aplicación
+- SSO integration (planned)
 
-## 🚀 Estado Actual del Proyecto
+## Estado Actual del Proyecto
 
 | Componente | Estado | Progreso |
 |------------|--------|----------|
-| Backend API | 🚧 Scaffolding | 25% |
-| Frontend UI | 🚧 Scaffolding | 25% |
-| Database Schema | ✅ Completo | 90% |
-| Authentication | ❌ Pendiente | 0% |
-| Authorization | ❌ Pendiente | 0% |
-| Documentation | 🚧 En progreso | 50% |
-| Testing | ❌ Pendiente | 0% |
-| CI/CD | ❌ Pendiente | 0% |
+| Backend API | Scaffolding | 25% |
+| Frontend UI | Scaffolding | 25% |
+| Database Schema | Completo | 90% |
+| Authentication | Pendiente | 0% |
+| Authorization | Pendiente | 0% |
+| Documentation | En progreso | 50% |
+| Testing | Pendiente | 0% |
+| CI/CD | Pendiente | 0% |
 
-## 🔄 Próximos Pasos
+## Próximos Pasos
 
 ### Fase 1: Core Implementation
 1. **Autenticación JWT** - Implementar login/logout completo
@@ -93,7 +93,7 @@
 3. **Monitoring** - Métricas y alertas
 4. **Documentation** - Documentación completa
 
-## 🤝 Contribuir
+## Contribuir
 
 Para contribuir al proyecto:
 
@@ -111,7 +111,7 @@ Para contribuir al proyecto:
 - **Testing**: Cobertura mínima del 80%
 - **Documentation**: Documentar todas las APIs y funcionalidades
 
-## 📞 Soporte
+## Soporte
 
 - **Issues**: Reportar bugs en GitHub Issues
 - **Discussions**: Preguntas y discusiones en GitHub Discussions

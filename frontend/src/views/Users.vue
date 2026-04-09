@@ -66,9 +66,9 @@
             </td>
             <td v-if="authStore.canAny('usuarios.editar', 'usuarios.eliminar', 'usuarios.reset_contrasena')" class="px-4 py-3">
               <div class="flex items-center justify-end gap-2">
-                <button v-if="authStore.can('usuarios.reset_contrasena')" @click="openResetPwd(u)" class="px-3 py-1 text-xs font-medium rounded border border-slate-200 text-slate-600 hover:bg-slate-100 hover:border-slate-300 transition-colors whitespace-nowrap">Resetear Pwd</button>
-                <button v-if="authStore.can('usuarios.editar')" @click="openEdit(u)" class="px-3 py-1 text-xs font-medium rounded border border-slate-200 text-slate-600 hover:bg-slate-100 hover:border-slate-300 transition-colors whitespace-nowrap">Editar</button>
-                <button v-if="authStore.can('usuarios.eliminar')" @click="confirmDelete(u)" class="px-3 py-1 text-xs font-medium rounded border border-red-100 text-red-500 hover:bg-red-50 hover:border-red-200 transition-colors whitespace-nowrap">Eliminar</button>
+                <button v-if="authStore.can('usuarios.reset_contrasena')" @click="openResetPwd(u)" title="Resetear contraseña" class="p-1.5 rounded text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"><KeyRound :size="15" /></button>
+                <button v-if="authStore.can('usuarios.editar')" @click="openEdit(u)" title="Editar" class="p-1.5 rounded text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"><Pencil :size="15" /></button>
+                <button v-if="authStore.can('usuarios.eliminar')" @click="confirmDelete(u)" title="Eliminar" class="p-1.5 rounded text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors"><Trash2 :size="15" /></button>
               </div>
             </td>
           </tr>
@@ -189,9 +189,25 @@
                 <label class="an-label">Correo electrónico <span class="text-red-500">*</span></label>
                 <input v-model="uForm.email" type="email" required class="an-input" placeholder="Ej. maria@empresa.com" />
               </div>
-              <div class="mb-4">
+
+              <!-- Send credentials checkbox -->
+              <div class="mb-4 rounded-lg border border-slate-100 bg-slate-50 px-4 py-3">
+                <label class="flex items-start gap-3 cursor-pointer">
+                  <input
+                    v-model="uForm.sendCredentials"
+                    type="checkbox"
+                    class="mt-0.5 h-4 w-4 rounded border-slate-300 text-indigo-600 accent-indigo-600"
+                  />
+                  <span class="flex flex-col">
+                    <span class="text-sm font-medium text-slate-800">Enviar credenciales al usuario</span>
+                    <span class="text-xs text-slate-500 mt-0.5">Se generará una contraseña aleatoria y se enviará al correo indicado junto con el nombre de usuario y el link de acceso.</span>
+                  </span>
+                </label>
+              </div>
+
+              <div v-if="!uForm.sendCredentials" class="mb-4">
                 <label class="an-label">Contraseña <span class="text-red-500">*</span></label>
-                <input v-model="uForm.password" type="password" required minlength="8" class="an-input" placeholder="Mínimo 8 caracteres" />
+                <input v-model="uForm.password" type="password" :required="!uForm.sendCredentials" minlength="8" class="an-input" placeholder="Mínimo 8 caracteres" />
               </div>
               <div class="mb-4">
                 <label class="an-label">Empresa <span class="text-slate-400 font-normal">(opcional)</span></label>
@@ -464,6 +480,7 @@ import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useAuthStore } from '@/store/auth'
 import api from '@/services/api'
 import { te, teError } from '@/i18n'
+import { Pencil, Trash2, KeyRound } from 'lucide-vue-next'
 
 const authStore = useAuthStore()
 
@@ -529,7 +546,7 @@ const pForm = reactive({
   primaryPhone: '', secondaryPhone: '', address: '',
 })
 
-const uForm = reactive({ username: '', email: '', password: '', companyId: '' })
+const uForm = reactive({ username: '', email: '', password: '', companyId: '', sendCredentials: false })
 
 // ── Companies (for create wizard) ─────────────────────────────────────────────
 const companies       = ref([])
@@ -552,7 +569,7 @@ function openCreate() {
     nationalId: '', birthDate: '', phoneAreaCode: '',
     primaryPhone: '', secondaryPhone: '', address: '',
   })
-  Object.assign(uForm, { username: '', email: '', password: '', companyId: '' })
+  Object.assign(uForm, { username: '', email: '', password: '', companyId: '', sendCredentials: false })
   step.value      = 1
   formError.value = ''
   createOpen.value = true
@@ -580,7 +597,10 @@ async function submitCreate() {
       firstSurname: pForm.firstSurname.trim(),
       username:     uForm.username.trim(),
       email:        uForm.email.trim(),
-      password:     uForm.password,
+      sendCredentials: uForm.sendCredentials,
+    }
+    if (!uForm.sendCredentials) {
+      payload.password = uForm.password
     }
     // Optional person fields — only send non-empty values
     if (pForm.secondSurname.trim())  payload.secondSurname  = pForm.secondSurname.trim()

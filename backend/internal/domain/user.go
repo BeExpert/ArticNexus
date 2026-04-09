@@ -39,7 +39,11 @@ type CreateUserRequest struct {
 	// User fields.
 	Username string `json:"username" validate:"required,max=100"`
 	Email    string `json:"email"    validate:"required,email"`
-	Password string `json:"password" validate:"required,min=8"`
+	Password string `json:"password" validate:"omitempty,min=8"`
+
+	// When true the backend generates a random password and e-mails the
+	// credentials to the user. The Password field is ignored in this case.
+	SendCredentials bool `json:"sendCredentials"`
 
 	// Optional: assign user to a company on creation.
 	CompanyID *int64 `json:"companyId"`

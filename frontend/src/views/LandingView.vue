@@ -67,7 +67,7 @@
           </span>
           <h1 class="text-5xl md:text-6xl font-bold text-white mb-6 leading-tight">
             Construimos las aplicaciones
-            <span class="text-nordic-cyan block mt-1">que agilizan tu negocio</span>
+            <span class="text-nordic-cyan block mt-1">que agilizan su negocio</span>
           </h1>
           <p class="text-slate-400 text-xl max-w-2xl mx-auto leading-relaxed">
             Innovación, calidad, compromiso y la atención que tu empresa merece.
@@ -112,7 +112,7 @@
 
         <div class="text-center mb-20">
           <span class="text-nordic-cyan text-sm font-semibold uppercase tracking-wider">Para empresas</span>
-          <h2 class="text-4xl font-bold text-dark-gray mt-2 mb-4">Cómo trabajamos contigo</h2>
+          <h2 class="text-4xl font-bold text-dark-gray mt-2 mb-4">Pasos para realizar su proyecto</h2>
           <p class="text-cool-gray max-w-xl mx-auto">
             De la idea a la pantalla, con un proceso claro y un equipo comprometido.
           </p>
@@ -170,13 +170,6 @@
                   <div>
                     <h3 class="text-xl font-bold mb-3">{{ product.title }}</h3>
                     <p class="text-sm mb-5 leading-relaxed text-slate-300">{{ product.fullDescription }}</p>
-                    <div class="flex flex-wrap gap-1.5">
-                      <span
-                        v-for="tech in product.technologies"
-                        :key="tech"
-                        class="px-2.5 py-1 bg-white/10 rounded-md text-xs text-slate-300"
-                      >{{ tech }}</span>
-                    </div>
                   </div>
                   <a
                     v-if="product.url && product.url !== '#contacto'"
@@ -259,9 +252,9 @@
         <div class="max-w-2xl mx-auto">
           <div class="text-center mb-12">
             <span class="text-nordic-cyan text-sm font-semibold uppercase tracking-wider">Contacto</span>
-            <h2 class="text-4xl font-bold text-dark-gray mt-2 mb-4">Hablemos de tu proyecto</h2>
+            <h2 class="text-4xl font-bold text-dark-gray mt-2 mb-4">Hablemos de su proyecto</h2>
             <p class="text-cool-gray">
-              Cuéntanos qué necesitas. Te respondemos en menos de 24 horas.
+              Cuéntenos qué necesita. Le respondemos en menos de 24 horas.
             </p>
           </div>
 
@@ -273,7 +266,7 @@
               <CheckCircle2 :size="28" class="text-white" />
             </div>
             <h3 class="text-xl font-bold mb-2">¡Solicitud enviada!</h3>
-            <p class="opacity-90">Nos pondremos en contacto contigo pronto.</p>
+            <p class="opacity-90">Nos pondremos en contacto con usted pronto.</p>
           </div>
 
           <form
@@ -294,7 +287,7 @@
                   type="text"
                   maxlength="100"
                   required
-                  placeholder="Tu nombre"
+                  placeholder="Su nombre"
                   :class="inputClass('nombre')"
                   @blur="validateAppField('nombre')"
                 />
@@ -307,7 +300,7 @@
                   type="email"
                   maxlength="150"
                   required
-                  placeholder="tu@empresa.com"
+                  placeholder="su@empresa.com"
                   :class="inputClass('email')"
                   @blur="validateAppField('email')"
                 />
@@ -316,13 +309,13 @@
             </div>
 
             <div>
-              <label class="block text-sm font-semibold text-dark-gray mb-1.5">¿Qué necesita tu empresa? *</label>
+              <label class="block text-sm font-semibold text-dark-gray mb-1.5">¿Qué necesita su empresa? *</label>
               <textarea
                 v-model="appForm.descripcion"
                 rows="5"
                 maxlength="1000"
                 required
-                placeholder="Describe el sistema o proceso que quieres digitalizar, el tamaño de tu equipo, cualquier detalle relevante..."
+                placeholder="Describa el sistema o proceso que quiere digitalizar, el tamaño de su equipo, cualquier detalle relevante..."
                 :class="inputClass('descripcion')"
                 @blur="validateAppField('descripcion')"
               ></textarea>
@@ -471,12 +464,12 @@ const processSteps = [
   {
     icon: MessageSquare,
     title: 'Reunión y diagnóstico',
-    description: 'Entendemos tu negocio y tus procesos actuales. Te asesoramos sin tecnicismos.',
+    description: 'Entendemos su negocio y sus procesos actuales. Le asesoramos sin tecnicismos.',
   },
   {
     icon: Code2,
     title: 'Diseño y desarrollo',
-    description: 'Construimos la solución con tecnología robusta, iterando junto a vos en cada etapa.',
+    description: 'Construimos la solución con tecnología robusta, mejorando continuamente junto a usted en cada etapa.',
   },
   {
     icon: Rocket,
@@ -493,7 +486,6 @@ const products = reactive([
     shortDescription: 'Plataforma integral para clínicas veterinarias: pacientes, historial clínico, vacunas y más.',
     fullDescription:
       'Gestión completa de mascotas, historial clínico, carnet de vacunas con código QR, portal del cliente, agenda de citas e inventario.',
-    technologies: ['Vue 3', 'Go', 'PostgreSQL'],
     url: vetDataUrl,
     flipped: false,
   },
@@ -504,7 +496,6 @@ const products = reactive([
     shortDescription: 'Sistema de gestión integral para clínicas oftalmológicas con formularios especializados.',
     fullDescription:
       'Gestión de pacientes, formularios clínicos especializados, agenda, control de cirugías y catálogos de diagnósticos y tratamientos.',
-    technologies: ['Vue 3', 'Go', 'PostgreSQL'],
     url: oftaDataUrl,
     flipped: false,
   },
@@ -512,10 +503,9 @@ const products = reactive([
     id: 3,
     icon: Monitor,
     title: 'Desarrollo a medida',
-    shortDescription: 'Sistemas de gestión, aplicaciones web y APIs personalizadas para tu operación.',
+    shortDescription: 'Sistemas de gestión, aplicaciones web y APIs personalizadas para su operación.',
     fullDescription:
-      'Desde sistemas internos de gestión hasta plataformas SaaS completas. Analizamos tu caso y entregamos una solución escalable.',
-    technologies: ['Vue.js', 'Go', 'React', 'Node.js'],
+      'Desde sistemas internos de gestión hasta plataformas SaaS completas. Analizamos su caso y entregamos una solución escalable.',
     url: '#contacto',
     flipped: false,
   },
@@ -535,7 +525,7 @@ const services = [
   {
     icon: Settings2,
     title: 'Web Services y APIs',
-    description: 'Integraciones, APIs RESTful y servicios backend robustos construidos en Go.',
+    description: 'Integraciones, APIs RESTful y servicios backend robustos y escalables.',
   },
 ]
 

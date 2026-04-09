@@ -3,7 +3,9 @@ package service
 import (
 	"crypto/rand"
 	"fmt"
+	"log"
 
+	"articnexus/backend/internal/config"
 	"articnexus/backend/internal/domain"
 	"articnexus/backend/internal/repository"
 
@@ -26,6 +28,8 @@ type userService struct {
 	personRepo      repository.PersonRepository
 	companyUserRepo repository.CompanyUserRepository
 	db              *gorm.DB
+	emailService    EmailService
+	cfg             *config.Config
 }
 
 // NewUserService returns a UserService implementation.
@@ -34,8 +38,17 @@ func NewUserService(
 	userRepo repository.UserRepository,
 	personRepo repository.PersonRepository,
 	companyUserRepo repository.CompanyUserRepository,
+	emailService EmailService,
+	cfg *config.Config,
 ) UserService {
-	return &userService{db: db, userRepo: userRepo, personRepo: personRepo, companyUserRepo: companyUserRepo}
+	return &userService{
+		db:              db,
+		userRepo:        userRepo,
+		personRepo:      personRepo,
+		companyUserRepo: companyUserRepo,
+		emailService:    emailService,
+		cfg:             cfg,
+	}
 }
 
 func (s *userService) GetByID(id int64) (*domain.UserResponse, error) {
@@ -70,7 +83,22 @@ func (s *userService) GetAll(params domain.PaginationParams) ([]domain.UserRespo
 
 // Create creates a Person and a User in a single database transaction.
 func (s *userService) Create(req domain.CreateUserRequest) (*domain.UserResponse, error) {
-	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	var plainPassword string
+	var err error
+
+	if req.SendCredentials {
+		plainPassword, err = generateRandomPassword(12)
+		if err != nil {
+			return nil, fmt.Errorf("could not generate random password: %w", err)
+		}
+	} else {
+		if req.Password == "" {
+			return nil, fmt.Errorf("password is required when sendCredentials is false")
+		}
+		plainPassword = req.Password
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(plainPassword), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, fmt.Errorf("could not hash password: %w", err)
 	}
@@ -125,6 +153,21 @@ func (s *userService) Create(req domain.CreateUserRequest) (*domain.UserResponse
 
 	if txErr != nil {
 		return nil, txErr
+	}
+
+	// Send welcome credentials email when requested. A failure here is
+	// non-blocking — the user account has already been created successfully.
+	if req.SendCredentials && created.Email != "" {
+		loginURL := s.cfg.FrontendURL + "/login"
+		if sendErr := s.emailService.SendWelcomeCredentials(
+			created.Email,
+			created.Username,
+			plainPassword,
+			loginURL,
+			s.cfg.SupportSMTPFrom,
+		); sendErr != nil {
+			log.Printf("[WARN] could not send welcome credentials to %s: %v", created.Email, sendErr)
+		}
 	}
 
 	resp := mapUserToResponse(created)
