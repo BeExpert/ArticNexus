@@ -5,15 +5,15 @@ import "time"
 // Person maps to tblPersons_PER.
 type Person struct {
 	ID             int64      `gorm:"column:per_id;primaryKey;autoIncrement"`
-	FirstName      string     `gorm:"column:per_firstName;not null"`
-	FirstSurname   string     `gorm:"column:per_firstSurname;not null"`
-	SecondSurname  *string    `gorm:"column:per_secondSurname"`
-	NationalID     *string    `gorm:"column:per_nationalId"`
+	FirstName      string     `gorm:"column:per_firstname;not null"`
+	FirstSurname   string     `gorm:"column:per_firstsurname;not null"`
+	SecondSurname  *string    `gorm:"column:per_secondsurname"`
+	NationalID     *string    `gorm:"column:per_nationalid"`
 	Email          *string    `gorm:"column:per_email"`
-	BirthDate      *time.Time `gorm:"column:per_birthDate"`
-	PhoneAreaCode  *string    `gorm:"column:per_phoneAreaCode"`
-	PrimaryPhone   *string    `gorm:"column:per_primaryPhone"`
-	SecondaryPhone *string    `gorm:"column:per_secondaryPhone"`
+	BirthDate      *time.Time `gorm:"column:per_birthdate"`
+	PhoneAreaCode  *string    `gorm:"column:per_phoneareacode"`
+	PrimaryPhone   *string    `gorm:"column:per_primaryphone"`
+	SecondaryPhone *string    `gorm:"column:per_secondaryphone"`
 	Address        *string    `gorm:"column:per_address"`
 	Status         string     `gorm:"column:per_status;not null;default:active"`
 	AuditFields
