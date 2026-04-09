@@ -8,7 +8,6 @@ import (
 	"articnexus/backend/pkg/logger"
 
 	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
 )
 
 // SeedSuperAdmin ensures a super-admin user exists in the database.
@@ -32,9 +31,12 @@ func SeedSuperAdmin(database *gorm.DB, cfg *config.Config) error {
 
 	return database.Transaction(func(tx *gorm.DB) error {
 		var user domain.User
-		result := tx.Where("usr_username = ?", cfg.SuperAdminUser).First(&user)
+		result := tx.Where("usr_username = ?", cfg.SuperAdminUser).Limit(1).Find(&user)
+		if result.Error != nil {
+			return result.Error
+		}
 
-		if result.Error == nil {
+		if result.RowsAffected > 0 {
 			// User already exists.
 			if !cfg.SuperAdminForce {
 				logger.Info(logger.App, fmt.Sprintf("[seed] super-admin '%s' already exists — skipping", cfg.SuperAdminUser))
@@ -46,10 +48,6 @@ func SeedSuperAdmin(database *gorm.DB, cfg *config.Config) error {
 			}
 			logger.Info(logger.App, fmt.Sprintf("[seed] super-admin '%s' password refreshed (SUPER_ADMIN_FORCE=1)", cfg.SuperAdminUser))
 			return nil
-		}
-
-		if result.Error != gorm.ErrRecordNotFound {
-			return result.Error
 		}
 
 		// Create a minimal Person record first.
