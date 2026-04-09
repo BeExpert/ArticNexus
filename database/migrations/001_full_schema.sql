@@ -229,7 +229,7 @@ ON CONFLICT (app_code) DO NOTHING;
 
 WITH app AS (SELECT app_id FROM "tblApplications_APP" WHERE app_code = 'ARTICNEXUS')
 INSERT INTO "tblModules_MOD" (app_id, mod_name, mod_display_name, mod_description, mod_status, created_at, updated_at)
-SELECT app.app_id, v.n, v.d, v.desc, 'active', NOW(), NOW()
+SELECT app.app_id, v.n, v.d, v.descr, 'active', NOW(), NOW()
 FROM app, (VALUES
     ('dashboard.ver',               'Ver Dashboard',                   'Puede ver el panel de control'),
     ('empresas.ver',                'Ver empresas',                    'Puede ver el listado de empresas'),
@@ -270,7 +270,7 @@ FROM app, (VALUES
     ('demo_links.ver',              'Ver links de demo',               'Puede ver los links de demo generados'),
     ('demo_links.crear',            'Crear links de demo',             'Puede generar nuevos links de acceso demo'),
     ('demo_links.eliminar',         'Revocar links de demo',           'Puede revocar links de demo activos')
-) AS v(n, d, desc)
+  ) AS v(n, d, descr)
 ON CONFLICT (app_id, mod_name) DO UPDATE SET
     mod_display_name = EXCLUDED.mod_display_name,
     mod_description  = EXCLUDED.mod_description,
@@ -282,7 +282,7 @@ ON CONFLICT (app_id, mod_name) DO UPDATE SET
 
 WITH app AS (SELECT app_id FROM "tblApplications_APP" WHERE app_code = 'OFTADATA')
 INSERT INTO "tblModules_MOD" (app_id, mod_name, mod_display_name, mod_description, mod_status, created_at, updated_at)
-SELECT app.app_id, v.n, v.d, v.desc, 'active', NOW(), NOW()
+SELECT app.app_id, v.n, v.d, v.descr, 'active', NOW(), NOW()
 FROM app, (VALUES
     ('pacientes.ver',           'Ver pacientes',            'Puede ver el listado de pacientes'),
     ('pacientes.crear',         'Registrar pacientes',      'Puede registrar nuevos pacientes'),
@@ -308,7 +308,7 @@ FROM app, (VALUES
     ('notificaciones.gestionar','Gestionar notificaciones', 'Puede configurar y gestionar notificaciones'),
     ('admin.usuarios',          'Administrar usuarios',     'Puede gestionar usuarios de la aplicación'),
     ('admin.reset_db',          'Resetear base de datos',   'Puede reinicializar los datos de la base de datos')
-) AS v(n, d, desc)
+  ) AS v(n, d, descr)
 ON CONFLICT (app_id, mod_name) DO UPDATE SET
     mod_display_name = EXCLUDED.mod_display_name,
     mod_description  = EXCLUDED.mod_description,
@@ -320,7 +320,7 @@ ON CONFLICT (app_id, mod_name) DO UPDATE SET
 
 WITH app AS (SELECT app_id FROM "tblApplications_APP" WHERE app_code = 'VETDATA')
 INSERT INTO "tblModules_MOD" (app_id, mod_name, mod_display_name, mod_description, mod_status, created_at, updated_at)
-SELECT app.app_id, v.n, v.d, v.desc, 'active', NOW(), NOW()
+SELECT app.app_id, v.n, v.d, v.descr, 'active', NOW(), NOW()
 FROM app, (VALUES
     ('clientes.ver',     'Ver clientes',          'Puede ver el listado de clientes'),
     ('clientes.crear',   'Registrar clientes',    'Puede registrar nuevos clientes'),
@@ -344,7 +344,7 @@ FROM app, (VALUES
     ('agenda.ver',       'Ver agenda',            'Puede ver la agenda, citas y calendario'),
     ('agenda.crear',     'Gestionar agenda',      'Puede crear y gestionar citas y disponibilidad'),
     ('admin.usuarios',   'Administrar usuarios',  'Puede gestionar usuarios de la aplicación')
-) AS v(n, d, desc)
+  ) AS v(n, d, descr)
 ON CONFLICT (app_id, mod_name) DO UPDATE SET
     mod_display_name = EXCLUDED.mod_display_name,
     mod_description  = EXCLUDED.mod_description,
