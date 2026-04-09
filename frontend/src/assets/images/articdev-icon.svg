@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="48" height="36" viewBox="0 0 48 36" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="iconGradient1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#7BA7BC;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#5A8FA7;stop-opacity:1" />
+    </linearGradient>
+    
+    <linearGradient id="iconGradient2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2E5266;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1E3A4A;stop-opacity:1" />
+    </linearGradient>
+    
+    <linearGradient id="iconGradient3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0F2A3C;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#051219;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Mountain layers for icon -->
+  <polygon points="8,28 24,8 40,28" fill="url(#iconGradient1)" />
+  <polygon points="4,28 18,12 32,28" fill="url(#iconGradient2)" />
+  <polygon points="16,28 24,16 32,28" fill="url(#iconGradient3)" />
+  
+  <!-- Network connections -->
+  <g stroke="#4A9EE0" stroke-width="1" fill="#4A9EE0" opacity="0.8">
+    <line x1="16" y1="18" x2="24" y2="14" />
+    <line x1="24" y1="14" x2="32" y2="20" />
+    <line x1="16" y1="18" x2="28" y2="22" />
+    
+    <circle cx="16" cy="18" r="1.5" />
+    <circle cx="24" cy="14" r="1.5" />
+    <circle cx="32" cy="20" r="1.5" />
+    <circle cx="28" cy="22" r="1" />
+  </g>
+</svg>

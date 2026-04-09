@@ -1,0 +1,262 @@
+// =============================================================
+// ArticNexus — Full DB Schema (dbdiagram.io)
+// Generated: 2026-03-18
+// Includes: audit columns, password reset tokens, all relations
+// =============================================================
+
+//////////////////////////////////////////////////////
+// PERSONS
+//////////////////////////////////////////////////////
+
+Table tblPersons_PER {
+  per_id             bigint [pk, increment]
+  per_firstName      varchar(100)
+  per_firstSurname   varchar(100)
+  per_secondSurname  varchar(100)
+  per_nationalId     varchar(50)
+  per_email          varchar(255)
+  per_birthDate      date
+  per_phoneAreaCode  varchar(10)
+  per_primaryPhone   varchar(20)
+  per_secondaryPhone varchar(20)
+  per_address        text
+  per_status         varchar(20)
+  created_at         timestamptz [not null, default: `NOW()`]
+  updated_at         timestamptz [not null, default: `NOW()`]
+  deleted_at         timestamptz
+
+  Note: 'Personas físicas del sistema. Trigger auto-update updated_at.'
+}
+
+//////////////////////////////////////////////////////
+// USERS
+//////////////////////////////////////////////////////
+
+Table tblUsers_USR {
+  usr_id       bigint [pk, increment]
+  per_id       bigint [not null]
+  usr_username varchar(100) [unique]
+  usr_email    varchar(255) [unique]
+  usr_password varchar(255)
+  usr_status   varchar(20)
+  created_at   timestamptz [not null, default: `NOW()`]
+  updated_at   timestamptz [not null, default: `NOW()`]
+  deleted_at   timestamptz
+
+  Note: 'Cuentas de usuario vinculadas a una persona.'
+}
+
+//////////////////////////////////////////////////////
+// COMPANIES
+//////////////////////////////////////////////////////
+
+Table tblCompanies_COM {
+  com_id     bigint [pk, increment]
+  com_name   varchar(255)
+  com_status varchar(20)
+  created_at timestamptz [not null, default: `NOW()`]
+  updated_at timestamptz [not null, default: `NOW()`]
+  deleted_at timestamptz
+
+  Note: 'Empresas afiliadas al ecosistema.'
+}
+
+//////////////////////////////////////////////////////
+// BRANCHES (SUCURSALES)
+//////////////////////////////////////////////////////
+
+Table tblBranches_BRA {
+  bra_id          bigint [pk, increment]
+  com_id          bigint [not null]
+  bra_code        varchar(50)
+  bra_name        varchar(150)
+  bra_address     text
+  bra_phoneNumber varchar(20)
+  bra_email       varchar(255)
+  bra_status      varchar(20)
+  created_at      timestamptz [not null, default: `NOW()`]
+  updated_at      timestamptz [not null, default: `NOW()`]
+  deleted_at      timestamptz
+
+  Indexes {
+    (com_id, bra_code) [unique]
+  }
+
+  Note: 'Sucursales de cada empresa.'
+}
+
+//////////////////////////////////////////////////////
+// USER - COMPANY (junction)
+//////////////////////////////////////////////////////
+
+Table tblUserCompanies_UCO {
+  usr_id     bigint
+  com_id     bigint
+  created_at timestamptz [not null, default: `NOW()`]
+
+  Indexes {
+    (usr_id, com_id) [pk]
+  }
+
+  Note: 'Relación N:N usuario ↔ empresa.'
+}
+
+//////////////////////////////////////////////////////
+// USER - BRANCH (junction)
+//////////////////////////////////////////////////////
+
+Table tblUserBranches_UBR {
+  usr_id     bigint
+  bra_id     bigint
+  created_at timestamptz [not null, default: `NOW()`]
+
+  Indexes {
+    (usr_id, bra_id) [pk]
+  }
+
+  Note: 'Relación N:N usuario ↔ sucursal.'
+}
+
+//////////////////////////////////////////////////////
+// APPLICATIONS
+//////////////////////////////////////////////////////
+
+Table tblApplications_APP {
+  app_id     bigint [pk, increment]
+  app_code   varchar(50) [unique]
+  app_name   varchar(255)
+  app_status varchar(20)
+  created_at timestamptz [not null, default: `NOW()`]
+  updated_at timestamptz [not null, default: `NOW()`]
+  deleted_at timestamptz
+
+  Note: 'Aplicaciones registradas (ARTICNEXUS, OftaData, etc.).'
+}
+
+//////////////////////////////////////////////////////
+// ROLES
+//////////////////////////////////////////////////////
+
+Table tblRoles_ROL {
+  rol_id     bigint [pk, increment]
+  app_id     bigint [not null]
+  rol_name   varchar(100)
+  rol_status varchar(20)
+  created_at timestamptz [not null, default: `NOW()`]
+  updated_at timestamptz [not null, default: `NOW()`]
+  deleted_at timestamptz
+
+  Indexes {
+    (app_id, rol_name) [unique]
+  }
+
+  Note: 'Roles por aplicación (Super Admin, Secretaria, etc.).'
+}
+
+//////////////////////////////////////////////////////
+// MODULES (granular: recurso.acción)
+//////////////////////////////////////////////////////
+
+Table tblModules_MOD {
+  mod_id          bigint [pk, increment]
+  app_id          bigint [not null]
+  mod_name        varchar(100)
+  mod_menuOption  varchar(100)
+  mod_subFunction varchar(100)
+  mod_description text
+  mod_status      varchar(20)
+  created_at      timestamptz [not null, default: `NOW()`]
+  updated_at      timestamptz [not null, default: `NOW()`]
+  deleted_at      timestamptz
+
+  Note: 'Módulos granulares (e.g. empresas.ver, roles.asignar_modulos).'
+}
+
+//////////////////////////////////////////////////////
+// ROLE - MODULE (junction)
+//////////////////////////////////////////////////////
+
+Table tblRoleModules_RMO {
+  rol_id     bigint
+  mod_id     bigint
+  created_at timestamptz [not null, default: `NOW()`]
+
+  Indexes {
+    (rol_id, mod_id) [pk]
+  }
+
+  Note: 'Permisos: qué módulos tiene cada rol.'
+}
+
+//////////////////////////////////////////////////////
+// USER - ROLE (per company & branch)
+//////////////////////////////////////////////////////
+
+Table tblUserRoles_URO {
+  usr_id     bigint
+  com_id     bigint
+  bra_id     bigint
+  rol_id     bigint
+  created_at timestamptz [not null, default: `NOW()`]
+
+  Indexes {
+    (usr_id, com_id, bra_id, rol_id) [pk]
+  }
+
+  Note: 'Asignación de roles por usuario+empresa+sucursal.'
+}
+
+//////////////////////////////////////////////////////
+// PASSWORD RESET TOKENS
+//////////////////////////////////////////////////////
+
+Table tblPasswordResetTokens_PRT {
+  prt_id         serial [pk]
+  usr_id         integer [not null]
+  prt_token_hash varchar(255) [not null]
+  prt_expires_at timestamptz [not null]
+  prt_used       boolean [default: false]
+  prt_created_at timestamptz [default: `NOW()`]
+
+  Indexes {
+    prt_token_hash
+    usr_id
+  }
+
+  Note: 'Tokens de un solo uso para resetear contraseña.'
+}
+
+//////////////////////////////////////////////////////
+// RELATIONSHIPS
+//////////////////////////////////////////////////////
+
+// Users → Persons
+Ref: tblUsers_USR.per_id > tblPersons_PER.per_id
+
+// Branches → Companies
+Ref: tblBranches_BRA.com_id > tblCompanies_COM.com_id
+
+// UserCompanies (N:N)
+Ref: tblUserCompanies_UCO.usr_id > tblUsers_USR.usr_id
+Ref: tblUserCompanies_UCO.com_id > tblCompanies_COM.com_id
+
+// UserBranches (N:N)
+Ref: tblUserBranches_UBR.usr_id > tblUsers_USR.usr_id
+Ref: tblUserBranches_UBR.bra_id > tblBranches_BRA.bra_id
+
+// Roles & Modules → Applications
+Ref: tblRoles_ROL.app_id > tblApplications_APP.app_id
+Ref: tblModules_MOD.app_id > tblApplications_APP.app_id
+
+// RoleModules (N:N)
+Ref: tblRoleModules_RMO.rol_id > tblRoles_ROL.rol_id
+Ref: tblRoleModules_RMO.mod_id > tblModules_MOD.mod_id
+
+// UserRoles (N:N with context)
+Ref: tblUserRoles_URO.usr_id > tblUsers_USR.usr_id
+Ref: tblUserRoles_URO.com_id > tblCompanies_COM.com_id
+Ref: tblUserRoles_URO.bra_id > tblBranches_BRA.bra_id
+Ref: tblUserRoles_URO.rol_id > tblRoles_ROL.rol_id
+
+// Password Reset Tokens → Users
+Ref: tblPasswordResetTokens_PRT.usr_id > tblUsers_USR.usr_id

@@ -1,0 +1,164 @@
+# ------------------------------
+# ArticNexus .gitignore
+# Backend: Go
+# Frontend: Vue 3 (Vite + Tailwind)
+# DB / Assets / Entornos locales
+# ------------------------------
+
+###############################
+# 1. Dependencias / Build
+###############################
+# Node / Vite
+node_modules/
+.pnpm-store/
+.vite/
+*.tsbuildinfo
+
+# Go build outputs / caches
+backend/api
+backend/api.exe
+backend/cmd/api/api
+backend/cmd/api/api.exe
+backend/cmd/*/*.exe
+backend/bin/
+backend/build/
+backend/dist/
+backend/coverage/
+# Go tooling caches (no se versionan)
+*.test
+
+# Frontend build
+frontend/dist/
+frontend/build/
+frontend/.cache/
+
+# General build artifacts
+/dist/
+/build/
+/out/
+/.output/
+/tmp/
+.temp/
+.Temp/
+
+###############################
+# 2. Entornos / Config sensibles
+###############################
+# Archivos de entorno (mantener solo ejemplos)
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Llaves / credenciales accidentales
+*.pem
+*.key
+*.crt
+*.pfx
+*.der
+*.cer
+
+###############################
+# 3. Logs y trazas
+###############################
+*.log
+*.log.*
+logs/
+backend/backend/storage/logs/*
+!backend/backend/storage/logs/.gitkeep
+
+###############################
+# 4. Base de datos / Backups
+###############################
+database/backups/
+*.sql.dump
+*.sql.gz
+*.db
+*.sqlite
+*.sqlite3
+
+###############################
+# 5. Cobertura / Reportes / QA
+###############################
+coverage/
+coverage-final.json
+lcov.info
+.nyc_output/
+reports/
+
+###############################
+# 6. Sistema Operativo / Editor
+###############################
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+# Windows
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
+# Linux
+*~
+
+# VSCode (permitir config del proyecto pero ignorar caché del usuario)
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/launch.json
+!.vscode/tasks.json
+
+# JetBrains
+.idea/
+*.iml
+
+###############################
+# 7. Herramientas / Misceláneo
+###############################
+.eslintcache
+.stylelintcache
+*.swp
+*.swo
+*.orig
+*.rej
+*.bak
+*.tmp
+*.temp
+
+# Lockfiles alternativos (mantén el que uses)
+yarn.lock
+pnpm-lock.yaml
+
+###############################
+# 8. Assets generados
+###############################
+*.trace
+*.patch
+frontend/src/assets/generated/
+
+###############################
+# 9. Tests temporales
+###############################
+.junit/
+*.test-output
+tmp_*
+temp_*
+
+###############################
+# 10. Cache de herramientas
+###############################
+.cache/
+.parcel-cache/
+rollup.cache
+vite.config.timestamp-*
+
+###############################
+# 11. Binarios / Librerías nativas
+###############################
+*.exe
+*.dll
+*.so
+*.dylib
+*.bin
+*.tar
+
+# FIN

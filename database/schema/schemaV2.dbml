@@ -1,0 +1,323 @@
+// =============================================================
+// ArticNexus — Schema V2 (dbdiagram.io)
+// Updated: 2026-04-08
+// Reflects full production state:
+//   - All 14 tables with final columns (post all migrations)
+//   - Audit columns on all entity tables
+//   - usr_password_expires_at (demo accounts)
+//   - mod_display_name (human-readable module labels)
+//   - UNIQUE constraint uq_modules_app_mod_name on Modules
+//   - Demo links table
+//   - Password reset tokens table
+//   - All FK relationships
+// =============================================================
+
+Project ArticNexus {
+  database_type: 'PostgreSQL'
+  Note: '''
+    Multi-tenant identity and permission platform.
+    Three registered applications: ARTICNEXUS, OFTADATA, VETDATA.
+    Super-admin identity is runtime-only (env var), never stored in DB.
+    Session epoch is generated per-boot and embedded in JWT to invalidate
+    all tokens on backend restart.
+  '''
+}
+
+//////////////////////////////////////////////////////
+// PERSONS
+//////////////////////////////////////////////////////
+
+Table tblPersons_PER {
+  per_id             bigint      [pk, increment, note: 'Surrogate PK']
+  per_firstName      varchar(100)
+  per_firstSurname   varchar(100)
+  per_secondSurname  varchar(100)
+  per_nationalId     varchar(50)
+  per_email          varchar(255)
+  per_birthDate      date
+  per_phoneAreaCode  varchar(10)
+  per_primaryPhone   varchar(20)
+  per_secondaryPhone varchar(20)
+  per_address        text
+  per_status         varchar(20) [not null, default: 'active']
+  created_at         timestamptz [not null, default: `NOW()`]
+  updated_at         timestamptz [not null, default: `NOW()`]
+  deleted_at         timestamptz
+
+  Note: '''
+    Physical persons linked to user accounts.
+    Trigger trg_persons_updated_at auto-updates updated_at on every row change.
+    Soft-delete via deleted_at (GORM convention).
+  '''
+}
+
+//////////////////////////////////////////////////////
+// USERS
+//////////////////////////////////////////////////////
+
+Table tblUsers_USR {
+  usr_id                  bigint      [pk, increment]
+  per_id                  bigint      [not null, ref: > tblPersons_PER.per_id, note: 'One person ↔ one user account']
+  usr_username            varchar(100) [unique]
+  usr_email               varchar(255) [unique]
+  usr_password            varchar(255) [note: 'bcrypt hash, cost configurable via BCRYPT_COST env var']
+  usr_status              varchar(20)  [note: 'active | inactive']
+  usr_password_expires_at timestamptz  [note: 'When set, blocks login after this timestamp. Used for demo/trial accounts.']
+  created_at              timestamptz [not null, default: `NOW()`]
+  updated_at              timestamptz [not null, default: `NOW()`]
+  deleted_at              timestamptz
+
+  Note: '''
+    User authentication accounts.
+    Super-admin status is NOT stored here — it is determined at runtime by
+    comparing usr_username against the SUPER_ADMIN_USER environment variable.
+    Trigger trg_users_updated_at auto-updates updated_at.
+  '''
+}
+
+//////////////////////////////////////////////////////
+// COMPANIES
+//////////////////////////////////////////////////////
+
+Table tblCompanies_COM {
+  com_id     bigint      [pk, increment]
+  com_name   varchar(255) [not null]
+  com_status varchar(20)  [not null, default: 'active', note: 'active | inactive']
+  created_at timestamptz [not null, default: `NOW()`]
+  updated_at timestamptz [not null, default: `NOW()`]
+  deleted_at timestamptz
+
+  Note: '''
+    Client companies registered in the ecosystem.
+    One company can have multiple branches (sucursales).
+    Trigger trg_companies_updated_at auto-updates updated_at.
+  '''
+}
+
+//////////////////////////////////////////////////////
+// BRANCHES (SUCURSALES)
+//////////////////////////////////////////////////////
+
+Table tblBranches_BRA {
+  bra_id          bigint       [pk, increment]
+  com_id          bigint       [not null, ref: > tblCompanies_COM.com_id]
+  bra_code        varchar(50)  [note: 'Business-defined branch code, e.g. AD-001']
+  bra_name        varchar(150)
+  bra_address     text
+  bra_phoneNumber varchar(20)
+  bra_email       varchar(255)
+  bra_status      varchar(20)  [note: 'active | inactive']
+  created_at      timestamptz  [not null, default: `NOW()`]
+  updated_at      timestamptz  [not null, default: `NOW()`]
+  deleted_at      timestamptz
+
+  indexes {
+    (com_id, bra_code) [unique, name: 'uq_branches_com_code']
+  }
+
+  Note: '''
+    Physical or logical locations of a company.
+    Roles are assigned to users per company+branch combination.
+    Trigger trg_branches_updated_at auto-updates updated_at.
+  '''
+}
+
+//////////////////////////////////////////////////////
+// USER ↔ COMPANY (junction)
+//////////////////////////////////////////////////////
+
+Table tblUserCompanies_UCO {
+  usr_id     bigint      [not null, ref: > tblUsers_USR.usr_id]
+  com_id     bigint      [not null, ref: > tblCompanies_COM.com_id]
+  created_at timestamptz [not null, default: `NOW()`]
+
+  indexes {
+    (usr_id, com_id) [pk]
+  }
+
+  Note: 'Many-to-many: which companies a user belongs to. ON DELETE CASCADE.'
+}
+
+//////////////////////////////////////////////////////
+// USER ↔ BRANCH (junction)
+//////////////////////////////////////////////////////
+
+Table tblUserBranches_UBR {
+  usr_id     bigint      [not null, ref: > tblUsers_USR.usr_id]
+  bra_id     bigint      [not null, ref: > tblBranches_BRA.bra_id]
+  created_at timestamptz [not null, default: `NOW()`]
+
+  indexes {
+    (usr_id, bra_id) [pk]
+  }
+
+  Note: 'Many-to-many: which branches a user has access to. ON DELETE CASCADE.'
+}
+
+//////////////////////////////////////////////////////
+// APPLICATIONS
+//////////////////////////////////////////////////////
+
+Table tblApplications_APP {
+  app_id     bigint       [pk, increment]
+  app_code   varchar(50)  [not null, unique, note: 'Machine identifier: ARTICNEXUS | OFTADATA | VETDATA']
+  app_name   varchar(255) [not null, note: 'Human-readable: ArticNexus | OftaData | VetData']
+  app_status varchar(20)  [not null, default: 'active']
+  created_at timestamptz  [not null, default: `NOW()`]
+  updated_at timestamptz  [not null, default: `NOW()`]
+  deleted_at timestamptz
+
+  Note: '''
+    Registered SaaS applications managed under the ArticNexus umbrella.
+    app_code is the canonical identifier used in permission checks and JWT claims.
+    Trigger trg_applications_updated_at auto-updates updated_at.
+  '''
+}
+
+//////////////////////////////////////////////////////
+// ROLES
+//////////////////////////////////////////////////////
+
+Table tblRoles_ROL {
+  rol_id     bigint       [pk, increment]
+  app_id     bigint       [not null, ref: > tblApplications_APP.app_id]
+  rol_name   varchar(100) [not null]
+  rol_status varchar(20)  [not null, default: 'active']
+  created_at timestamptz  [not null, default: `NOW()`]
+  updated_at timestamptz  [not null, default: `NOW()`]
+  deleted_at timestamptz
+
+  indexes {
+    (app_id, rol_name) [unique, name: 'uq_roles_app_name']
+  }
+
+  Note: '''
+    Roles are scoped per application. A user can hold different roles
+    in different apps, companies and branches via tblUserRoles_URO.
+    Trigger trg_roles_updated_at auto-updates updated_at.
+  '''
+}
+
+//////////////////////////////////////////////////////
+// MODULES (granular permissions: resource.action)
+//////////////////////////////////////////////////////
+
+Table tblModules_MOD {
+  mod_id           bigint       [pk, increment]
+  app_id           bigint       [not null, ref: > tblApplications_APP.app_id]
+  mod_name         varchar(100) [note: 'Permission key, e.g. empresas.ver, roles.asignar_modulo']
+  mod_menuOption   varchar(100) [note: 'Legacy nav hint — superseded by mod_display_name']
+  mod_subFunction  varchar(100) [note: 'Legacy sub-action hint']
+  mod_description  text         [note: 'Human-readable description of what this permission grants']
+  mod_status       varchar(20)  [default: 'active']
+  mod_display_name varchar(255) [note: 'UI label, e.g. "Ver Dashboard", "Asignar módulos a roles"']
+  created_at       timestamptz  [not null, default: `NOW()`]
+  updated_at       timestamptz  [not null, default: `NOW()`]
+  deleted_at       timestamptz
+
+  indexes {
+    (app_id, mod_name) [unique, name: 'uq_modules_app_mod_name', note: 'Required for ON CONFLICT upserts in seed']
+  }
+
+  Note: '''
+    Granular permission modules using resource.action naming convention.
+    ARTICNEXUS modules: dashboard.ver, empresas.*, sucursales.*, personas.*,
+      usuarios.*, roles.*, modulos.*, aplicaciones.*, demo_links.*
+    OFTADATA modules: pacientes.*, formularios.*, citas.*, cirugia.*,
+      catalogos.*, notificaciones.*, admin.*
+    VETDATA modules: clientes.*, mascotas.*, vacunas.*, medicamentos.*,
+      tickets.*, inventario.*, consultas.*, cirugias.*, libro.*, agenda.*, admin.*
+    Trigger trg_modules_updated_at auto-updates updated_at.
+  '''
+}
+
+//////////////////////////////////////////////////////
+// ROLE ↔ MODULE (junction)
+//////////////////////////////////////////////////////
+
+Table tblRoleModules_RMO {
+  rol_id     bigint      [not null, ref: > tblRoles_ROL.rol_id]
+  mod_id     bigint      [not null, ref: > tblModules_MOD.mod_id]
+  created_at timestamptz [not null, default: `NOW()`]
+
+  indexes {
+    (rol_id, mod_id) [pk]
+  }
+
+  Note: 'Defines which modules/permissions each role grants. ON DELETE CASCADE.'
+}
+
+//////////////////////////////////////////////////////
+// USER ROLE ASSIGNMENTS (per company + branch context)
+//////////////////////////////////////////////////////
+
+Table tblUserRoles_URO {
+  usr_id     bigint      [not null, ref: > tblUsers_USR.usr_id]
+  com_id     bigint      [not null, ref: > tblCompanies_COM.com_id]
+  bra_id     bigint      [not null, ref: > tblBranches_BRA.bra_id]
+  rol_id     bigint      [not null, ref: > tblRoles_ROL.rol_id]
+  created_at timestamptz [not null, default: `NOW()`]
+
+  indexes {
+    (usr_id, com_id, bra_id, rol_id) [pk]
+  }
+
+  Note: '''
+    Contextual role assignment: a user can have role R within company C at branch B.
+    The same user can hold different roles in different companies/branches.
+    Permission checks resolve: user → role → modules for the ARTICNEXUS app.
+    ON DELETE CASCADE on all FK columns.
+  '''
+}
+
+//////////////////////////////////////////////////////
+// PASSWORD RESET TOKENS
+//////////////////////////////////////////////////////
+
+Table tblPasswordResetTokens_PRT {
+  prt_id         serial      [pk]
+  usr_id         integer     [not null, ref: > tblUsers_USR.usr_id, note: 'ON DELETE CASCADE']
+  prt_token_hash varchar(255) [not null, note: 'SHA-256 hash of the plain token — never store plain']
+  prt_expires_at timestamptz [not null, note: 'Default TTL: PASSWORD_RESET_EXP_MIN env var (default 30m)']
+  prt_used       boolean     [default: false, note: 'One-time use flag']
+  prt_created_at timestamptz [default: `NOW()`]
+
+  indexes {
+    prt_token_hash [name: 'idx_prt_token_hash']
+    usr_id         [name: 'idx_prt_usr_id']
+  }
+
+  Note: '''
+    Secure password reset flow using one-time hashed tokens.
+    The plain token is sent via email; only its SHA-256 hash is stored.
+    Tokens expire after PASSWORD_RESET_EXP_MIN minutes (default 30).
+  '''
+}
+
+//////////////////////////////////////////////////////
+// DEMO LINKS
+//////////////////////////////////////////////////////
+
+Table tblDemoLinks_DML {
+  dml_id              bigint       [pk, increment]
+  dml_token_hash      varchar(255) [not null, unique, note: 'SHA-256 hash of the demo access token']
+  dml_app_code        varchar(50)  [not null, note: 'Target application: OFTADATA | VETDATA | etc.']
+  dml_demo_user_id    bigint       [not null, ref: > tblUsers_USR.usr_id, note: 'Pre-configured demo user account']
+  dml_expires_at      timestamptz  [not null]
+  dml_is_active       boolean      [not null, default: true, note: 'Can be revoked before expiry']
+  dml_recipient_email varchar(255) [note: 'Optional: email the link was sent to, for audit trail']
+  dml_created_by      bigint       [not null, ref: > tblUsers_USR.usr_id, note: 'ArticNexus user who generated the link']
+  dml_created_at      timestamptz  [not null, default: `NOW()`]
+
+  indexes {
+    dml_token_hash [name: 'idx_demolinks_token_hash']
+    dml_app_code   [name: 'idx_demolinks_app_code']
+  }
+
+  Note: '''
+    Shareable demo access links. A link auto-logs into a pre-configured demo user
+    account for the target application. Can be revoked (dml_is_active=false) or
+    will expire at dml_expires_at. The demo user also has usr_password_expires_at set.
+    Created and managed by ArticNexus super-admins via the demo_links.* permission set.
+  '''
+}

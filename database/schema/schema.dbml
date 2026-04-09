@@ -1,0 +1,184 @@
+// =============================================================
+// ArticNexus — Canonical DB Schema (dbdiagram.io format)
+// Updated: 2026-03-02
+// =============================================================
+
+//////////////////////////////////////////////////////
+// PERSONS
+//////////////////////////////////////////////////////
+
+Table tblPersons_PER {
+  per_id             bigint [pk, increment]
+  per_firstName      varchar(100)
+  per_firstSurname   varchar(100)
+  per_secondSurname  varchar(100)
+  per_nationalId     varchar(50)
+  per_email          varchar(255)
+  per_birthDate      date
+  per_phoneAreaCode  varchar(10)
+  per_primaryPhone   varchar(20)
+  per_secondaryPhone varchar(20)
+  per_address        text
+  per_status         varchar(20)
+}
+
+//////////////////////////////////////////////////////
+// USERS
+//////////////////////////////////////////////////////
+
+Table tblUsers_USR {
+  usr_id       bigint [pk, increment]
+  per_id       bigint [not null]
+  usr_username varchar(100) [unique]
+  usr_email    varchar(255) [unique]
+  usr_password varchar(255)
+  usr_status   varchar(20)
+}
+
+//////////////////////////////////////////////////////
+// COMPANIES
+//////////////////////////////////////////////////////
+
+Table tblCompanies_COM {
+  com_id     bigint [pk, increment]
+  com_name   varchar(255)
+  com_status varchar(20)
+}
+
+//////////////////////////////////////////////////////
+// BRANCHES (SUCURSALES)
+//////////////////////////////////////////////////////
+
+Table tblBranches_BRA {
+  bra_id          bigint [pk, increment]
+  com_id          bigint [not null]
+  bra_code        varchar(50)
+  bra_name        varchar(150)
+  bra_address     text
+  bra_phoneNumber varchar(20)
+  bra_email       varchar(255)
+  bra_status      varchar(20)
+
+  Indexes {
+    (com_id, bra_code) [unique]
+  }
+}
+
+//////////////////////////////////////////////////////
+// USER - COMPANY
+//////////////////////////////////////////////////////
+
+Table tblUserCompanies_UCO {
+  usr_id bigint
+  com_id bigint
+
+  Indexes {
+    (usr_id, com_id) [pk]
+  }
+}
+
+//////////////////////////////////////////////////////
+// USER - BRANCH
+//////////////////////////////////////////////////////
+
+Table tblUserBranches_UBR {
+  usr_id bigint
+  bra_id bigint
+
+  Indexes {
+    (usr_id, bra_id) [pk]
+  }
+}
+
+//////////////////////////////////////////////////////
+// APPLICATIONS
+//////////////////////////////////////////////////////
+
+Table tblApplications_APP {
+  app_id     bigint [pk, increment]
+  app_code   varchar(50) [unique]
+  app_name   varchar(255)
+  app_status varchar(20)
+}
+
+//////////////////////////////////////////////////////
+// ROLES
+//////////////////////////////////////////////////////
+
+Table tblRoles_ROL {
+  rol_id     bigint [pk, increment]
+  app_id     bigint [not null]
+  rol_name   varchar(100)
+  rol_status varchar(20)
+
+  Indexes {
+    (app_id, rol_name) [unique]
+  }
+}
+
+//////////////////////////////////////////////////////
+// MODULES
+//////////////////////////////////////////////////////
+
+Table tblModules_MOD {
+  mod_id          bigint [pk, increment]
+  app_id          bigint [not null]
+  mod_name        varchar(100)
+  mod_menuOption  varchar(100)
+  mod_subFunction varchar(100)
+  mod_description text
+  mod_status      varchar(20)
+}
+
+//////////////////////////////////////////////////////
+// ROLE - MODULE
+//////////////////////////////////////////////////////
+
+Table tblRoleModules_RMO {
+  rol_id bigint
+  mod_id bigint
+
+  Indexes {
+    (rol_id, mod_id) [pk]
+  }
+}
+
+//////////////////////////////////////////////////////
+// USER - ROLE (PER COMPANY & BRANCH)
+//////////////////////////////////////////////////////
+
+Table tblUserRoles_URO {
+  usr_id bigint
+  com_id bigint
+  bra_id bigint
+  rol_id bigint
+
+  Indexes {
+    (usr_id, com_id, bra_id, rol_id) [pk]
+  }
+}
+
+//////////////////////////////////////////////////////
+// RELATIONSHIPS
+//////////////////////////////////////////////////////
+
+Ref: tblUsers_USR.per_id > tblPersons_PER.per_id
+
+Ref: tblBranches_BRA.com_id > tblCompanies_COM.com_id
+
+Ref: tblUserCompanies_UCO.usr_id > tblUsers_USR.usr_id
+Ref: tblUserCompanies_UCO.com_id > tblCompanies_COM.com_id
+
+Ref: tblUserBranches_UBR.usr_id > tblUsers_USR.usr_id
+Ref: tblUserBranches_UBR.bra_id > tblBranches_BRA.bra_id
+
+Ref: tblRoles_ROL.app_id > tblApplications_APP.app_id
+Ref: tblModules_MOD.app_id > tblApplications_APP.app_id
+
+Ref: tblRoleModules_RMO.rol_id > tblRoles_ROL.rol_id
+Ref: tblRoleModules_RMO.mod_id > tblModules_MOD.mod_id
+
+Ref: tblUserRoles_URO.usr_id > tblUsers_USR.usr_id
+Ref: tblUserRoles_URO.com_id > tblCompanies_COM.com_id
+Ref: tblUserRoles_URO.bra_id > tblBranches_BRA.bra_id
+Ref: tblUserRoles_URO.rol_id > tblRoles_ROL.rol_id

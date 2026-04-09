@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="200" height="60" viewBox="0 0 200 60" xmlns="http://www.w3.org/2000/svg">
+  <!-- Simple mountain silhouettes for email compatibility -->
+  <polygon points="20,45 40,15 60,45" fill="#ffffff" opacity="0.8" />
+  <polygon points="35,45 55,10 75,45" fill="#ffffff" opacity="0.9" />
+  <polygon points="50,45 70,20 90,45" fill="#ffffff" />
+  
+  <!-- Simple connection lines -->
+  <g stroke="#ffffff" stroke-width="1" fill="#ffffff" opacity="0.8">
+    <line x1="40" y1="25" x2="55" y2="20" />
+    <line x1="55" y1="20" x2="70" y2="30" />
+    <circle cx="40" cy="25" r="1.5" />
+    <circle cx="55" cy="20" r="1.5" />
+    <circle cx="70" cy="30" r="1.5" />
+  </g>
+  
+  <!-- Brand text -->
+  <text x="100" y="50" font-family="Arial, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="#ffffff" letter-spacing="1px">
+    ARTICDEV
+  </text>
+</svg>
