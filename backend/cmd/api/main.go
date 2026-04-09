@@ -26,6 +26,7 @@ import (
 func main() {
 	// ── CLI flags ────────────────────────────────────────────────────────────
 	migrate := flag.Bool("migrate", false, "run database migrations before starting the server")
+	resetDB := flag.Bool("reset-db", false, "drop and recreate public schema before migrating (development only)")
 	flag.Parse()
 
 	// ── Configuration ────────────────────────────────────────────────────────
@@ -65,8 +66,21 @@ func main() {
 	sqlDB, _ := database.DB()
 	defer sqlDB.Close()
 
+	// ── Optional development reset ───────────────────────────────────────────
+	if *resetDB {
+		if !cfg.IsDevelopment() {
+			log.Fatalf("-reset-db is only allowed in development environment")
+		}
+		logger.Info(logger.App, "resetting database schema public (development)")
+		if err := db.ResetPublicSchema(database); err != nil {
+			logger.Error(logger.App, fmt.Sprintf("database reset error: %v", err))
+			log.Fatalf("database reset error: %v", err)
+		}
+		logger.Info(logger.App, "database schema reset completed")
+	}
+
 	// ── Optional migrations ──────────────────────────────────────────────────
-	if *migrate {
+	if *migrate || *resetDB {
 		logger.Info(logger.App, fmt.Sprintf("running migrations from %s", cfg.MigrationsDir))
 		if err := db.Migrate(database, cfg.MigrationsDir); err != nil {
 			logger.Error(logger.App, fmt.Sprintf("migration error: %v", err))
