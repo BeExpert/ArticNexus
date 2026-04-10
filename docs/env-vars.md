@@ -110,6 +110,10 @@ Ver [smtp-config.md](smtp-config.md) para la guía completa.
 |---|---|---|---|---|
 | `FRONTEND_URL` | string | No | `http://localhost:5173` | URL base del frontend (para construir links de reset de contraseña en correos) |
 
+> Las variables del frontend (`VITE_*`) están documentadas en [frontend-guide.md](frontend-guide.md#2-configurar-variables-de-entorno).
+> Los archivos `.env.development` y `.env.production` están en `frontend/` y se versionan.
+> Para overrides locales, usar `frontend/.env` (gitignored).
+
 ## Tokens de reset de contraseña
 
 | Variable | Tipo | Requerido | Default | Descripción |

@@ -16,19 +16,29 @@ npm install
 
 ## 2. Configurar variables de entorno
 
-```bash
-cp .env.example .env
-```
+El frontend usa archivos `.env` de Vite para configuración por entorno. Hay dos archivos versionados y uno local:
 
-Variables disponibles en el frontend (archivo `.env` en `frontend/`):
-
-| Variable | Descripción | Ejemplo |
+| Archivo | Propósito | Versionado |
 |---|---|---|
-| `VITE_API_BASE_URL` | URL base de la API (solo para peticiones directas desde landing) | `http://localhost:8080` |
+| `.env.development` | Valores para `npm run dev` | Sí |
+| `.env.production` | Valores para `npm run build` | Sí |
+| `.env` | Overrides locales (nunca commitear) | No (gitignored) |
+
+> Vite carga automáticamente el archivo según el modo (`development` o `production`).
+> Un archivo `.env` local siempre tiene prioridad sobre los demás.
+
+Variables disponibles (solo las que comienzan con `VITE_` llegan al navegador):
+
+| Variable | Descripción | Default |
+|---|---|---|
+| `VITE_API_BASE_URL` | URL base de la API | `/api/v1` |
+| `VITE_APP_TITLE` | Título de la aplicación | `ArticNexus` |
 | `VITE_VETDATA_URL` | URL pública de VetData (links en la landing) | `https://vetdata.articdev.com` |
 | `VITE_OFTADATA_URL` | URL pública de OftaData (links en la landing) | `https://oftadata.articdev.com` |
 
-> **Nota:** Las peticiones a `/api/v1/*` van a través del proxy de Vite en desarrollo y **no** requieren variable de entorno. El proxy está configurado en `vite.config.js`.
+> **Nota:** En desarrollo, el proxy de Vite (`vite.config.js`) redirige `/api` al backend local.
+> En producción, nginx hace lo mismo. Por eso `VITE_API_BASE_URL` es un path relativo (`/api/v1`) en ambos entornos.
+> **Nunca tocar `vite.config.js` en el servidor** — toda configuración específica del entorno va en `.env`.
 
 ## 3. Modo desarrollo
 
@@ -98,7 +108,7 @@ frontend/src/
 
 ## 8. Proxy Vite (desarrollo)
 
-El archivo `vite.config.js` configura un proxy para que las peticiones a `/api/v1` apunten al backend:
+El archivo `vite.config.js` configura un proxy para que las peticiones a `/api` se redirijan al backend:
 
 ```js
 proxy: {
@@ -109,7 +119,12 @@ proxy: {
 }
 ```
 
-En producción, el proxy es reemplazado por la configuración de nginx (ver [deploy.md](deploy.md) si existe).
+Este proxy **solo aplica en desarrollo** (`npm run dev`). En producción, nginx se encarga del mismo reenvío.
+
+> **No** editar `vite.config.js` para cambiar URLs o puertos. Si se necesita apuntar a otro backend local, crear un archivo `frontend/.env` (gitignored) con:
+> ```
+> VITE_API_BASE_URL=http://otro-host:9090/api/v1
+> ```
 
 ## 9. Lint
 
