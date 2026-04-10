@@ -108,7 +108,7 @@ func SeedArticDevAndDemoUsers(database *gorm.DB, cfg *config.Config) error {
 				// Insert person.
 				var personID int64
 				if err := tx.Raw(
-					`INSERT INTO "tblPersons_PER" (per_firstname, per_firstsurname, per_status, created_at, updated_at)
+					`INSERT INTO "tblPersons_PER" ("per_firstName", "per_firstSurname", per_status, created_at, updated_at)
 					 VALUES ('Demo', ?, 'active', now(), now())
 					 RETURNING per_id`,
 					app.label,

@@ -19,21 +19,21 @@ BEGIN;
 -- =============================================================
 
 CREATE TABLE IF NOT EXISTS "tblPersons_PER" (
-    per_id             BIGSERIAL    PRIMARY KEY,
-    per_firstName      VARCHAR(100),
-    per_firstSurname   VARCHAR(100),
-    per_secondSurname  VARCHAR(100),
-    per_nationalId     VARCHAR(50),
-    per_email          VARCHAR(255),
-    per_birthDate      DATE,
-    per_phoneAreaCode  VARCHAR(10),
-    per_primaryPhone   VARCHAR(20),
-    per_secondaryPhone VARCHAR(20),
-    per_address        TEXT,
-    per_status         VARCHAR(20)  NOT NULL DEFAULT 'active',
-    created_at         TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
-    updated_at         TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
-    deleted_at         TIMESTAMPTZ
+    per_id               BIGSERIAL    PRIMARY KEY,
+    "per_firstName"      VARCHAR(100),
+    "per_firstSurname"   VARCHAR(100),
+    "per_secondSurname"  VARCHAR(100),
+    "per_nationalId"     VARCHAR(50),
+    per_email            VARCHAR(255),
+    "per_birthDate"      DATE,
+    "per_phoneAreaCode"  VARCHAR(10),
+    "per_primaryPhone"   VARCHAR(20),
+    "per_secondaryPhone" VARCHAR(20),
+    per_address          TEXT,
+    per_status           VARCHAR(20)  NOT NULL DEFAULT 'active',
+    created_at           TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    updated_at           TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    deleted_at           TIMESTAMPTZ
 );
 
 CREATE TABLE IF NOT EXISTS "tblUsers_USR" (
@@ -59,14 +59,14 @@ CREATE TABLE IF NOT EXISTS "tblCompanies_COM" (
 );
 
 CREATE TABLE IF NOT EXISTS "tblBranches_BRA" (
-    bra_id          BIGSERIAL    PRIMARY KEY,
-    com_id          BIGINT       NOT NULL REFERENCES "tblCompanies_COM"(com_id),
-    bra_code        VARCHAR(50),
-    bra_name        VARCHAR(150),
-    bra_address     TEXT,
-    bra_phoneNumber VARCHAR(20),
-    bra_email       VARCHAR(255),
-    bra_status      VARCHAR(20),
+    bra_id            BIGSERIAL    PRIMARY KEY,
+    com_id            BIGINT       NOT NULL REFERENCES "tblCompanies_COM"(com_id),
+    bra_code          VARCHAR(50),
+    bra_name          VARCHAR(150),
+    bra_address       TEXT,
+    "bra_phoneNumber" VARCHAR(20),
+    bra_email         VARCHAR(255),
+    bra_status        VARCHAR(20),
     created_at      TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
     updated_at      TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
     deleted_at      TIMESTAMPTZ,
@@ -118,11 +118,11 @@ CREATE TABLE IF NOT EXISTS "tblRoles_ROL" (
 );
 
 CREATE TABLE IF NOT EXISTS "tblModules_MOD" (
-    mod_id           BIGSERIAL    PRIMARY KEY,
-    app_id           BIGINT       NOT NULL REFERENCES "tblApplications_APP"(app_id),
-    mod_name         VARCHAR(100),
-    mod_menuOption   VARCHAR(100),
-    mod_subFunction  VARCHAR(100),
+    mod_id             BIGSERIAL    PRIMARY KEY,
+    app_id             BIGINT       NOT NULL REFERENCES "tblApplications_APP"(app_id),
+    mod_name           VARCHAR(100),
+    "mod_menuOption"   VARCHAR(100),
+    "mod_subFunction"  VARCHAR(100),
     mod_description  TEXT,
     mod_status       VARCHAR(20)  DEFAULT 'active',
     mod_display_name VARCHAR(255),

@@ -71,7 +71,7 @@ func (r *userRepository) FindAll(params domain.PaginationParams) ([]domain.User,
 	if params.Search != "" {
 		like := "%" + params.Search + "%"
 		query = query.Joins(`JOIN "tblPersons_PER" p ON p.per_id = "tblUsers_USR".per_id`).
-			Where(`"tblUsers_USR".usr_username ILIKE ? OR "tblUsers_USR".usr_email ILIKE ? OR p.per_firstname ILIKE ? OR p.per_firstsurname ILIKE ?`,
+			Where(`"tblUsers_USR".usr_username ILIKE ? OR "tblUsers_USR".usr_email ILIKE ? OR p."per_firstName" ILIKE ? OR p."per_firstSurname" ILIKE ?`,
 				like, like, like, like)
 	}
 
@@ -83,7 +83,7 @@ func (r *userRepository) FindAll(params domain.PaginationParams) ([]domain.User,
 	if params.Search != "" {
 		like := "%" + params.Search + "%"
 		fetchQuery = fetchQuery.Joins(`JOIN "tblPersons_PER" p ON p.per_id = "tblUsers_USR".per_id`).
-			Where(`"tblUsers_USR".usr_username ILIKE ? OR "tblUsers_USR".usr_email ILIKE ? OR p.per_firstname ILIKE ? OR p.per_firstsurname ILIKE ?`,
+			Where(`"tblUsers_USR".usr_username ILIKE ? OR "tblUsers_USR".usr_email ILIKE ? OR p."per_firstName" ILIKE ? OR p."per_firstSurname" ILIKE ?`,
 				like, like, like, like)
 	}
 
