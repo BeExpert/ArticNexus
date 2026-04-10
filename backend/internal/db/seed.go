@@ -125,8 +125,10 @@ func SeedModules(database *gorm.DB) error {
 		{"empresas.eliminar", "Eliminar empresas", "Puede eliminar empresas del sistema"},
 		// ── Persons ─────────────────────────────────────────────────────
 		{"personas.ver", "Ver personas", "Puede ver las personas asignadas a una empresa"},
+		{"personas.crear", "Agregar personas", "Puede agregar personas a una empresa"},
 		{"personas.editar", "Editar personas", "Puede modificar los datos de personas"},
 		{"personas.eliminar", "Quitar personas", "Puede quitar personas de una empresa"},
+		{"personas.asignar_rol", "Asignar rol a persona", "Puede asignar y desasignar roles a personas de una empresa"},
 	}
 
 	sql := `

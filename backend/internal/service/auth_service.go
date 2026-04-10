@@ -21,6 +21,7 @@ import (
 // AuthService handles authentication and token management.
 type AuthService interface {
 	Login(req domain.LoginRequest) (*domain.LoginResponse, error)
+	SelectCompany(userID, companyID int64) (*domain.LoginResponse, error)
 	GetCurrentUser(userID int64) (*domain.UserResponse, error)
 	UpdateProfile(userID int64, req domain.UpdateProfileRequest) (*domain.UserResponse, error)
 	ForgotPassword(username string) error
@@ -32,6 +33,7 @@ type authService struct {
 	personRepo     repository.PersonRepository
 	moduleRepo     repository.ModuleRepository
 	resetRepo      repository.PasswordResetRepository
+	companyRepo    repository.CompanyRepository
 	emailSvc       EmailService
 	cfg            *config.Config
 	jwtSecret      string
@@ -44,6 +46,7 @@ func NewAuthService(
 	personRepo repository.PersonRepository,
 	moduleRepo repository.ModuleRepository,
 	resetRepo repository.PasswordResetRepository,
+	companyRepo repository.CompanyRepository,
 	emailSvc EmailService,
 	cfg *config.Config,
 	jwtSecret, superAdminUser string,
@@ -53,6 +56,7 @@ func NewAuthService(
 		personRepo:     personRepo,
 		moduleRepo:     moduleRepo,
 		resetRepo:      resetRepo,
+		companyRepo:    companyRepo,
 		emailSvc:       emailSvc,
 		cfg:            cfg,
 		jwtSecret:      jwtSecret,
@@ -84,7 +88,16 @@ func (s *authService) Login(req domain.LoginRequest) (*domain.LoginResponse, err
 		return nil, fmt.Errorf("tu sesión de prueba ha expirado. Contacta al administrador para recuperar el acceso")
 	}
 
-	token, err := s.generateToken(user.ID)
+	// Determine company scope to embed in the JWT.
+	var companyID int64
+	if !(s.superAdminUser != "" && user.Username == s.superAdminUser) {
+		companies, cErr := s.companyRepo.FindByUserID(user.ID)
+		if cErr == nil && len(companies) == 1 {
+			companyID = companies[0].ID
+		}
+	}
+
+	token, err := s.generateToken(user.ID, companyID)
 	if err != nil {
 		return nil, fmt.Errorf("could not generate token: %w", err)
 	}
@@ -129,15 +142,48 @@ func (s *authService) loadPermissions(userID int64, isSuperAdmin bool) []string 
 	return perms
 }
 
-func (s *authService) generateToken(userID int64) (string, error) {
+func (s *authService) generateToken(userID, companyID int64) (string, error) {
 	claims := jwt.MapClaims{
-		"sub":   userID,
-		"iat":   time.Now().Unix(),
-		"exp":   time.Now().Add(time.Duration(s.cfg.JWTExpHours) * time.Hour).Unix(),
-		"epoch": s.cfg.SessionEpoch,
+		"sub":    userID,
+		"com_id": companyID,
+		"iat":    time.Now().Unix(),
+		"exp":    time.Now().Add(time.Duration(s.cfg.JWTExpHours) * time.Hour).Unix(),
+		"epoch":  s.cfg.SessionEpoch,
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(s.jwtSecret))
+}
+
+// SelectCompany issues a new JWT scoped to the given company.  It validates
+// that the user actually belongs to the company before doing so.
+func (s *authService) SelectCompany(userID, companyID int64) (*domain.LoginResponse, error) {
+	companies, err := s.companyRepo.FindByUserID(userID)
+	if err != nil {
+		return nil, err
+	}
+	belongs := false
+	for _, c := range companies {
+		if c.ID == companyID {
+			belongs = true
+			break
+		}
+	}
+	if !belongs {
+		return nil, domain.ErrForbidden("no perteneces a esta empresa")
+	}
+
+	user, err := s.userRepo.FindByID(userID)
+	if err != nil {
+		return nil, err
+	}
+	token, err := s.generateToken(userID, companyID)
+	if err != nil {
+		return nil, fmt.Errorf("could not generate token: %w", err)
+	}
+	resp := mapUserToResponse(user)
+	resp.IsSuperAdmin = s.superAdminUser != "" && user.Username == s.superAdminUser
+	resp.Permissions = s.loadPermissions(user.ID, resp.IsSuperAdmin)
+	return &domain.LoginResponse{Token: token, User: resp}, nil
 }
 
 // UpdateProfile updates the authenticated user's own profile (no password/status).

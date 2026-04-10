@@ -68,5 +68,15 @@ export const authService = {
   async getCurrentUser() {
     const response = await api.get('/auth/me')
     return response.data
+  },
+
+  async getMyCompanies() {
+    const response = await api.get('/auth/me/companies')
+    return response.data
+  },
+
+  async selectCompany(companyId) {
+    const response = await api.post('/auth/select-company', { companyId })
+    return response.data
   }
 }

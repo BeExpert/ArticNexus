@@ -16,6 +16,7 @@ import (
 type contextKey string
 
 const UserIDKey contextKey = "userID"
+const companyIDKey contextKey = "companyID"
 
 // Authenticate is a Chi middleware that validates the Bearer JWT token in the
 // Authorization header, checks the session epoch to detect stale tokens from
@@ -89,6 +90,19 @@ func Authenticate(jwtSecret, sessionEpoch string) func(http.Handler) http.Handle
 			}
 
 			ctx := context.WithValue(r.Context(), UserIDKey, userID)
+
+			// Extract optional company_id claim; defaults to 0 (super-admin / not-yet-selected).
+			var companyID int64
+			if comRaw, ok2 := claims["com_id"]; ok2 {
+				switch v := comRaw.(type) {
+				case float64:
+					companyID = int64(v)
+				case int64:
+					companyID = v
+				}
+			}
+			ctx = context.WithValue(ctx, companyIDKey, companyID)
+
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
@@ -97,6 +111,14 @@ func Authenticate(jwtSecret, sessionEpoch string) func(http.Handler) http.Handle
 // UserIDFromContext retrieves the authenticated user's ID from the request context.
 func UserIDFromContext(ctx context.Context) (int64, bool) {
 	id, ok := ctx.Value(UserIDKey).(int64)
+	return id, ok
+}
+
+// CompanyIDFromContext retrieves the company ID embedded in the JWT from the
+// request context. Returns 0 (and false) when the token carries no company
+// scope (super-admin or multi-company user that hasn't selected a company yet).
+func CompanyIDFromContext(ctx context.Context) (int64, bool) {
+	id, ok := ctx.Value(companyIDKey).(int64)
 	return id, ok
 }
 

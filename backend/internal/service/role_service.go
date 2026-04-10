@@ -1,6 +1,8 @@
 package service
 
 import (
+	"fmt"
+
 	"articnexus/backend/internal/domain"
 	"articnexus/backend/internal/repository"
 )
@@ -8,7 +10,8 @@ import (
 // RoleService handles business logic for roles and their module assignments.
 type RoleService interface {
 	GetByID(id int64) (*domain.RoleResponse, error)
-	GetAll(params domain.PaginationParams) ([]domain.RoleResponse, int64, error)
+	// GetAll returns all roles. If companyID > 0 only roles for licensed apps are returned.
+	GetAll(companyID int64, params domain.PaginationParams) ([]domain.RoleResponse, int64, error)
 	Create(req domain.CreateRoleRequest) (*domain.RoleResponse, error)
 	Update(id int64, req domain.UpdateRoleRequest) (*domain.RoleResponse, error)
 	Delete(id int64) error
@@ -20,13 +23,25 @@ type RoleService interface {
 }
 
 type roleService struct {
-	roleRepo repository.RoleRepository
-	appRepo  repository.ApplicationRepository
+	roleRepo       repository.RoleRepository
+	appRepo        repository.ApplicationRepository
+	moduleRepo     repository.ModuleRepository
+	companyAppRepo repository.CompanyApplicationRepository
 }
 
 // NewRoleService returns a RoleService implementation.
-func NewRoleService(roleRepo repository.RoleRepository, appRepo repository.ApplicationRepository) RoleService {
-	return &roleService{roleRepo: roleRepo, appRepo: appRepo}
+func NewRoleService(
+	roleRepo repository.RoleRepository,
+	appRepo repository.ApplicationRepository,
+	moduleRepo repository.ModuleRepository,
+	companyAppRepo repository.CompanyApplicationRepository,
+) RoleService {
+	return &roleService{
+		roleRepo:       roleRepo,
+		appRepo:        appRepo,
+		moduleRepo:     moduleRepo,
+		companyAppRepo: companyAppRepo,
+	}
 }
 
 func (s *roleService) GetByID(id int64) (*domain.RoleResponse, error) {
@@ -38,8 +53,23 @@ func (s *roleService) GetByID(id int64) (*domain.RoleResponse, error) {
 	return &resp, nil
 }
 
-func (s *roleService) GetAll(params domain.PaginationParams) ([]domain.RoleResponse, int64, error) {
-	roles, total, err := s.roleRepo.FindAll(params)
+func (s *roleService) GetAll(companyID int64, params domain.PaginationParams) ([]domain.RoleResponse, int64, error) {
+	var roles []domain.Role
+	var total int64
+	var err error
+
+	if companyID > 0 {
+		appIDs, aErr := s.companyAppRepo.GetLicensedAppIDs(companyID)
+		if aErr != nil {
+			return nil, 0, aErr
+		}
+		if len(appIDs) == 0 {
+			return []domain.RoleResponse{}, 0, nil
+		}
+		roles, total, err = s.roleRepo.FindAllByAppIDs(appIDs, params)
+	} else {
+		roles, total, err = s.roleRepo.FindAll(params)
+	}
 	if err != nil {
 		return nil, 0, err
 	}
@@ -54,6 +84,16 @@ func (s *roleService) Create(req domain.CreateRoleRequest) (*domain.RoleResponse
 	// Verify the parent application exists.
 	if _, err := s.appRepo.FindByID(req.ApplicationID); err != nil {
 		return nil, err
+	}
+	// If a company scope is provided, verify the company is licensed for this app.
+	if req.CompanyID > 0 {
+		ok, err := s.companyAppRepo.IsLicensed(req.CompanyID, req.ApplicationID)
+		if err != nil {
+			return nil, err
+		}
+		if !ok {
+			return nil, domain.ErrForbidden("la empresa no tiene licencia para esta aplicación")
+		}
 	}
 	role := &domain.Role{
 		ApplicationID: req.ApplicationID,
@@ -102,9 +142,26 @@ func (s *roleService) GetModules(roleID int64) ([]domain.ModuleResponse, error) 
 }
 
 func (s *roleService) AssignModules(roleID int64, req domain.AssignModulesRequest) error {
-	// Verify the role exists.
-	if _, err := s.roleRepo.FindByID(roleID); err != nil {
+	// Verify the role exists and get its application scope.
+	role, err := s.roleRepo.FindByID(roleID)
+	if err != nil {
 		return err
+	}
+
+	// Security: ensure all requested modules belong to the same app as the role.
+	if len(req.ModuleIDs) > 0 {
+		mods, err := s.moduleRepo.FindByIDs(req.ModuleIDs)
+		if err != nil {
+			return err
+		}
+		for _, m := range mods {
+			if m.ApplicationID != role.ApplicationID {
+				return domain.ErrValidation(
+					domain.ErrCodeValidation,
+					fmt.Sprintf("el módulo '%s' no pertenece a la misma aplicación que el rol", m.Name),
+				)
+			}
+		}
 	}
 	return s.roleRepo.AssignModules(roleID, req.ModuleIDs)
 }

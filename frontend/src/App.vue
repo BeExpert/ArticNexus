@@ -104,6 +104,7 @@ const allNavItems = [
   { to: '/companies',     label: 'Empresas',      prefix: 'empresas'       },
   { to: '/users',         label: 'Usuarios',      prefix: 'usuarios'       },
   { to: '/applications',  label: 'Aplicaciones',  prefix: 'aplicaciones'   },
+  { to: '/licenses',      label: 'Licencias',      prefix: 'empresas'       },
   { to: '/demo-links',    label: 'Demo Links',     prefix: 'demo_links'     },
 ]
 

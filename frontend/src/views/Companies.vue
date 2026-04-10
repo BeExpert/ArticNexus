@@ -214,9 +214,28 @@
 
         <!-- ── Roles tab ──────────────────────────────────────────────────── -->
         <div v-if="activeTab === 'roles'">
-          <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center justify-between mb-3">
             <p class="text-sm text-slate-500">Roles disponibles para asignar a usuarios de esta empresa.</p>
             <button v-if="authStore.can('roles.crear')" @click="openCreateRole" class="an-btn-primary text-xs py-1.5 px-3">Nuevo Rol</button>
+          </div>
+
+          <!-- Filter bar -->
+          <div class="flex flex-wrap gap-2 mb-3">
+            <input v-model="rolesSearch" type="text" placeholder="Buscar rol…" class="an-input text-xs py-1.5 w-44" />
+            <select v-model="rolesAppFilter" class="an-input text-xs py-1.5 w-44">
+              <option value="">Todas las apps</option>
+              <option v-for="a in rolesUniqueApps" :key="a" :value="a">{{ a }}</option>
+            </select>
+            <select v-model="rolesStatusFilter" class="an-input text-xs py-1.5 w-36">
+              <option value="">Todos los estados</option>
+              <option value="active">Activo</option>
+              <option value="inactive">Inactivo</option>
+            </select>
+            <button
+              v-if="rolesSearch || rolesAppFilter || rolesStatusFilter"
+              @click="rolesSearch = ''; rolesAppFilter = ''; rolesStatusFilter = ''"
+              class="text-xs text-slate-500 hover:text-slate-800 py-1.5 px-2 rounded hover:bg-slate-100 transition-colors"
+            >Limpiar</button>
           </div>
 
           <div class="an-card overflow-hidden">
@@ -225,21 +244,31 @@
               <p class="text-sm font-medium text-slate-600">Sin roles configurados</p>
               <p class="text-xs text-slate-400 mt-1">Aún no se han creado roles para asignar a los usuarios.</p>
             </div>
-            <div class="overflow-x-auto"><table class="w-full text-sm border-collapse" style="min-width:480px">
+            <div v-else-if="filteredSortedRoles.length === 0" class="py-10 text-center">
+              <p class="text-sm text-slate-500">Sin resultados para los filtros aplicados.</p>
+              <button @click="rolesSearch = ''; rolesAppFilter = ''; rolesStatusFilter = ''" class="mt-2 text-xs text-indigo-600 hover:underline">Limpiar filtros</button>
+            </div>
+            <div v-else class="overflow-x-auto"><table class="w-full text-sm border-collapse" style="min-width:480px">
               <thead>
                 <tr class="bg-slate-800">
                   <th class="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-300 w-16">#</th>
-                  <th class="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-300">Nombre del rol</th>
-                  <th class="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-300 w-40">Aplicacion</th>
-                  <th class="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-300 w-24">Estado</th>
+                  <th @click="toggleRolesSort('name')" class="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-300 cursor-pointer hover:text-white select-none">
+                    Nombre del rol <span class="ml-1 text-slate-500">{{ sortIcon('name') }}</span>
+                  </th>
+                  <th @click="toggleRolesSort('appName')" class="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-300 w-40 cursor-pointer hover:text-white select-none">
+                    Aplicación <span class="ml-1 text-slate-500">{{ sortIcon('appName') }}</span>
+                  </th>
+                  <th @click="toggleRolesSort('status')" class="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-300 w-24 cursor-pointer hover:text-white select-none">
+                    Estado <span class="ml-1 text-slate-500">{{ sortIcon('status') }}</span>
+                  </th>
                   <th v-if="authStore.can('roles.asignar_modulos')" class="px-4 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wide text-slate-300 w-48">Acciones</th>
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="r in roles" :key="r.id" class="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors">
+                <tr v-for="r in filteredSortedRoles" :key="r.id" class="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors">
                   <td class="px-4 py-3 text-slate-400 tabular-nums">{{ r.id }}</td>
                   <td class="px-4 py-3 font-medium text-slate-900">{{ r.name }}</td>
-                  <td class="px-4 py-3 text-slate-500 text-xs">{{ appName(r.applicationId) }}</td>
+                  <td class="px-4 py-3 text-slate-500 text-xs">{{ r.appName || appName(r.applicationId) }}</td>
                   <td class="px-4 py-3">
                     <span :class="r.status === 'active' ? 'an-badge-active' : 'an-badge-inactive'">
                       {{ r.status === 'active' ? 'Activo' : 'Inactivo' }}
@@ -272,14 +301,14 @@
               <p class="text-sm font-medium text-slate-600">Sin personas asignadas</p>
               <p class="text-xs text-slate-400 mt-1">Agrega usuarios existentes a esta empresa para asignarles roles.</p>
             </div>
-            <div class="overflow-x-auto"><table class="w-full text-sm border-collapse" style="min-width:480px">
+            <div v-else class="overflow-x-auto"><table class="w-full text-sm border-collapse" style="min-width:480px">
               <thead>
                 <tr class="bg-slate-800">
                   <th class="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-300 w-16">#</th>
                   <th class="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-300">Nombre completo</th>
                   <th class="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-300 w-32">Usuario</th>
                   <th class="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-300">Roles asignados</th>
-                  <th v-if="authStore.canAny('personas.eliminar', 'roles.asignar_modulos')" class="px-4 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wide text-slate-300 w-48">Acciones</th>
+                  <th v-if="authStore.canAny('personas.eliminar', 'personas.asignar_rol')" class="px-4 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wide text-slate-300 w-48">Acciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -297,7 +326,7 @@
                         {{ ur.roleName || 'Rol desconocido' }}
                         <span class="text-indigo-400">· {{ ur.branchName || 'Sucursal desconocida' }}</span>
                         <button
-                          v-if="authStore.can('roles.asignar_modulos')"
+                          v-if="authStore.can('personas.asignar_rol')"
                           @click.stop="confirmRemoveRole(cu, ur)"
                           class="ml-0.5 text-indigo-400 hover:text-red-500 leading-none transition-colors"
                           title="Desasignar este rol"
@@ -305,9 +334,9 @@
                       </span>
                     </div>
                   </td>
-                  <td v-if="authStore.canAny('personas.eliminar', 'roles.asignar_modulos')" class="px-4 py-3">
+                  <td v-if="authStore.canAny('personas.eliminar', 'personas.asignar_rol')" class="px-4 py-3">
                     <div class="flex items-center justify-end gap-2">
-                      <button v-if="authStore.can('roles.asignar_modulos')" @click="openAssignRole(cu)" title="Asignar rol" class="p-1.5 rounded text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"><UserPlus :size="15" /></button>
+                      <button v-if="authStore.can('personas.asignar_rol')" @click="openAssignRole(cu)" title="Asignar rol" class="p-1.5 rounded text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"><UserPlus :size="15" /></button>
                       <button v-if="authStore.can('personas.eliminar')" @click="confirmRemovePerson(cu)" title="Quitar de la empresa" class="p-1.5 rounded text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors"><UserMinus :size="15" /></button>
                     </div>
                   </td>
@@ -318,11 +347,119 @@
           </div>
         </div>
 
+        <!-- ── Aplicaciones tab ──────────────────────────────────────────── -->
+        <div v-if="activeTab === 'apps'">
+          <div class="flex items-center justify-between mb-4">
+            <p class="text-sm text-slate-500">
+              Aplicaciones licenciadas para <strong class="text-slate-700">{{ selected.name }}</strong>
+            </p>
+            <button
+              v-if="authStore.can('empresas.editar') && availableAppsToAdd.length > 0"
+              @click="addAppOpen = true; loadApplications()"
+              class="an-btn-primary text-xs py-1.5 px-3"
+            >Agregar App</button>
+          </div>
+
+          <div v-if="companyAppsError" class="mb-4 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{{ companyAppsError }}</div>
+
+          <div class="an-card overflow-hidden">
+            <div v-if="loadingCompanyApps" class="py-16 text-center text-sm text-slate-400">Cargando aplicaciones…</div>
+            <div v-else-if="companyApps.length === 0" class="py-16 text-center">
+              <p class="text-sm font-medium text-slate-600">Sin aplicaciones licenciadas</p>
+              <p class="text-xs text-slate-400 mt-1">Agrega las aplicaciones que esta empresa puede usar.</p>
+            </div>
+            <div v-else class="divide-y divide-slate-100">
+              <div v-for="app in companyApps" :key="app.appId" class="flex items-center justify-between px-5 py-4 hover:bg-slate-50 transition-colors">
+                <div>
+                  <p class="text-sm font-semibold text-slate-900">{{ app.appName }}</p>
+                  <p class="text-xs font-mono text-slate-400 mt-0.5">{{ app.appCode }}</p>
+                </div>
+                <div class="flex items-center gap-3">
+                  <span :class="app.status === 'active' ? 'an-badge-active' : 'an-badge-inactive'">
+                    {{ app.status === 'active' ? 'Activa' : 'Inactiva' }}
+                  </span>
+                  <template v-if="authStore.can('empresas.editar') && app.appCode !== 'ARTICNEXUS'">
+                    <button
+                      @click="toggleCompanyAppStatus(app)"
+                      :title="app.status === 'active' ? 'Desactivar licencia' : 'Activar licencia'"
+                      class="p-1.5 rounded transition-colors"
+                      :class="app.status === 'active' ? 'text-amber-400 hover:text-amber-600 hover:bg-amber-50' : 'text-emerald-400 hover:text-emerald-600 hover:bg-emerald-50'"
+                    ><Power :size="15" /></button>
+                    <button
+                      @click="confirmRemoveApp(app)"
+                      title="Quitar licencia"
+                      class="p-1.5 rounded text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                    ><Trash2 :size="15" /></button>
+                  </template>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         </div><!-- /px-8 py-6 tab content -->
       </div><!-- /v-else selected -->
     </main>
 
     <!-- ══ MODALS ═══════════════════════════════════════════════════════════ -->
+
+    <!-- Add app license -->
+    <Teleport to="body">
+      <div v-if="addAppOpen" class="an-overlay" @click.self="addAppOpen = false">
+        <div class="an-modal an-modal--sm">
+          <div class="an-modal-header">
+            <h2 class="text-base font-semibold text-slate-900">Agregar aplicación</h2>
+            <button @click="addAppOpen = false" class="an-close-btn">&times;</button>
+          </div>
+          <div class="an-modal-body">
+            <p class="text-sm text-slate-500 mb-3">Selecciona la aplicación que deseas licenciar para <strong>{{ selected?.name }}</strong>.</p>
+            <div class="space-y-2">
+              <button
+                v-for="app in availableAppsToAdd" :key="app.id"
+                @click="addCompanyApp(app.id); addAppOpen = false"
+                class="w-full flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3 text-left hover:border-indigo-400 hover:bg-indigo-50 transition-all"
+              >
+                <div>
+                  <p class="text-sm font-semibold text-slate-800">{{ app.name }}</p>
+                  <p class="text-xs font-mono text-slate-400">{{ app.code }}</p>
+                </div>
+                <span class="text-xs text-indigo-500 font-medium">Agregar →</span>
+              </button>
+              <p v-if="availableAppsToAdd.length === 0" class="text-sm text-slate-400 text-center py-4">
+                Todas las aplicaciones ya están asignadas.
+              </p>
+            </div>
+            <div class="an-modal-footer">
+              <button @click="addAppOpen = false" class="an-btn-ghost">Cancelar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- Remove app license confirm -->
+    <Teleport to="body">
+      <div v-if="removeAppTarget" class="an-overlay" @click.self="removeAppTarget = null">
+        <div class="an-modal an-modal--sm">
+          <div class="an-modal-header">
+            <h2 class="text-base font-semibold text-slate-900">Quitar licencia</h2>
+            <button @click="removeAppTarget = null" class="an-close-btn">&times;</button>
+          </div>
+          <div class="an-modal-body">
+            <p class="text-sm text-slate-600">
+              ¿Quitar la licencia de
+              <span class="font-semibold text-slate-900">{{ removeAppTarget?.appName }}</span>
+              de <span class="font-semibold text-slate-900">{{ selected?.name }}</span>?
+              Los usuarios de esta empresa ya no podrán acceder a roles de esa aplicación.
+            </p>
+            <div class="an-modal-footer">
+              <button @click="removeAppTarget = null" class="an-btn-ghost">Cancelar</button>
+              <button @click="doRemoveApp" :disabled="removingApp" class="an-btn-danger">{{ removingApp ? 'Quitando…' : 'Quitar' }}</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
 
     <!-- Create company -->
     <Teleport to="body">
@@ -344,6 +481,29 @@
                 <option value="active">Activa</option>
                 <option value="inactive">Inactiva</option>
               </select>
+            </div>
+
+            <!-- App selection -->
+            <div class="border-t border-slate-200 pt-4 mt-4">
+              <label class="an-label mb-2 block">Aplicaciones licenciadas</label>
+              <p class="text-[11px] text-slate-400 mb-2">Selecciona las aplicaciones que esta empresa podrá usar. ArticNexus siempre se incluye.</p>
+              <div v-if="loadingApps" class="text-xs text-slate-400">Cargando apps…</div>
+              <div v-else class="space-y-1.5">
+                <label
+                  v-for="app in applications.filter(a => a.code !== 'ARTICNEXUS')" :key="app.id"
+                  class="flex items-center gap-2.5 cursor-pointer hover:bg-slate-50 rounded px-2 py-1.5 transition-colors"
+                >
+                  <input
+                    type="checkbox"
+                    :value="app.id"
+                    v-model="createForm.selectedAppIds"
+                    :disabled="createSaving"
+                    class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                  />
+                  <span class="text-sm text-slate-700">{{ app.name }}</span>
+                  <span class="text-[11px] font-mono text-slate-400 ml-auto">{{ app.code }}</span>
+                </label>
+              </div>
             </div>
 
             <!-- Toggle: create admin -->
@@ -405,13 +565,37 @@
               <label class="an-label">Nombre</label>
               <input v-model="editCompanyForm.name" type="text" required maxlength="255" :disabled="editCompanySaving" class="an-input" />
             </div>
-            <div>
+            <div class="mb-4">
               <label class="an-label">Estado</label>
               <select v-model="editCompanyForm.status" :disabled="editCompanySaving" class="an-input">
                 <option value="active">Activa</option>
                 <option value="inactive">Inactiva</option>
               </select>
             </div>
+
+            <!-- App licenses -->
+            <div class="border-t border-slate-200 pt-4 mt-4">
+              <label class="an-label mb-2 block">Aplicaciones licenciadas</label>
+              <p class="text-[11px] text-slate-400 mb-2">Gestiona las aplicaciones que esta empresa puede usar.</p>
+              <div v-if="loadingEditApps || loadingApps" class="text-xs text-slate-400">Cargando apps…</div>
+              <div v-else class="space-y-1.5">
+                <label
+                  v-for="app in applications.filter(a => a.code !== 'ARTICNEXUS')" :key="app.id"
+                  class="flex items-center gap-2.5 cursor-pointer hover:bg-slate-50 rounded px-2 py-1.5 transition-colors"
+                >
+                  <input
+                    type="checkbox"
+                    :value="app.id"
+                    v-model="editCompanyApps"
+                    :disabled="editCompanySaving"
+                    class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                  />
+                  <span class="text-sm text-slate-700">{{ app.name }}</span>
+                  <span class="text-[11px] font-mono text-slate-400 ml-auto">{{ app.code }}</span>
+                </label>
+              </div>
+            </div>
+
             <div class="an-modal-footer">
               <button type="button" @click="editCompanyOpen = false" class="an-btn-ghost">Cancelar</button>
               <button type="submit" :disabled="editCompanySaving" class="an-btn-primary">{{ editCompanySaving ? 'Guardando…' : 'Guardar' }}</button>
@@ -734,38 +918,64 @@
               <p class="text-xs text-slate-400 mt-1">Crea módulos en la sección Aplicaciones primero.</p>
             </div>
 
-            <!-- Grouped by prefix -->
-            <div v-else class="max-h-[60vh] overflow-y-auto space-y-4">
-              <div v-for="group in roleModulesGrouped" :key="group.prefix">
-                <!-- Group header -->
-                <div class="flex items-center gap-2 mb-1">
-                  <span class="text-[10px] font-bold uppercase tracking-widest text-slate-400">{{ group.label }}</span>
-                  <div class="flex-1 h-px bg-slate-100"></div>
-                  <span class="text-[10px] text-slate-300">{{ group.modules.filter(m => roleModulesAssigned.has(m.id)).length }}/{{ group.modules.length }}</span>
-                </div>
-                <label
-                  v-for="m in group.modules" :key="m.id"
-                  class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors border border-transparent hover:border-slate-100"
-                  :class="{ 'opacity-60': roleModulesSaving }"
-                >
-                  <input
-                    type="checkbox"
-                    :checked="roleModulesAssigned.has(m.id)"
-                    @change="toggleRoleModule(m.id, $event.target.checked)"
-                    :disabled="roleModulesSaving"
-                    class="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 shrink-0"
-                  />
-                  <div class="flex-1 min-w-0">
-                    <p class="text-sm font-medium text-slate-900 leading-snug">{{ m.displayName || m.name }}</p>
-                    <p class="text-[11px] text-slate-400 font-mono mt-0.5">{{ m.name }}</p>
-                  </div>
-                  <span
-                    v-if="roleModulesAssigned.has(m.id)"
-                    class="shrink-0 w-1.5 h-1.5 rounded-full bg-indigo-500"
-                  ></span>
-                </label>
+            <template v-else>
+              <!-- Search + expand/collapse controls -->
+              <div class="flex items-center gap-2 mb-3">
+                <input
+                  v-model="modalModuleSearch"
+                  type="text"
+                  placeholder="Buscar módulo…"
+                  class="an-input text-xs py-1.5 flex-1"
+                />
+                <button @click="expandAllGroups" class="text-xs text-slate-500 hover:text-slate-800 py-1.5 px-2 rounded hover:bg-slate-100 transition-colors whitespace-nowrap">Expandir todo</button>
+                <button @click="collapseAllGroups" class="text-xs text-slate-500 hover:text-slate-800 py-1.5 px-2 rounded hover:bg-slate-100 transition-colors whitespace-nowrap">Contraer todo</button>
               </div>
-            </div>
+
+              <!-- No search results -->
+              <div v-if="roleModulesGrouped.length === 0" class="py-6 text-center text-sm text-slate-400">
+                Sin módulos que coincidan con la búsqueda.
+              </div>
+
+              <!-- Grouped by prefix -->
+              <div v-else class="max-h-[55vh] overflow-y-auto space-y-4">
+                <div v-for="group in roleModulesGrouped" :key="group.prefix">
+                  <!-- Group header — clickable to collapse/expand -->
+                  <button
+                    type="button"
+                    @click="toggleGroup(group.prefix)"
+                    class="w-full flex items-center gap-2 mb-1 hover:opacity-75 transition-opacity"
+                  >
+                    <span class="text-[10px] font-bold uppercase tracking-widest text-slate-400">{{ group.label }}</span>
+                    <div class="flex-1 h-px bg-slate-100"></div>
+                    <span class="text-[10px] text-slate-300">{{ group.modules.filter(m => roleModulesAssigned.has(m.id)).length }}/{{ group.modules.length }}</span>
+                    <span class="text-[10px] text-slate-400 ml-0.5">{{ group.isCollapsed ? '▶' : '▼' }}</span>
+                  </button>
+                  <template v-if="!group.isCollapsed">
+                    <label
+                      v-for="m in group.modules" :key="m.id"
+                      class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors border border-transparent hover:border-slate-100"
+                      :class="{ 'opacity-60': roleModulesSaving }"
+                    >
+                      <input
+                        type="checkbox"
+                        :checked="roleModulesAssigned.has(m.id)"
+                        @change="toggleRoleModule(m.id, $event.target.checked)"
+                        :disabled="roleModulesSaving"
+                        class="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 shrink-0"
+                      />
+                      <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium text-slate-900 leading-snug">{{ m.displayName || m.name }}</p>
+                        <p class="text-[11px] text-slate-400 font-mono mt-0.5">{{ m.name }}</p>
+                      </div>
+                      <span
+                        v-if="roleModulesAssigned.has(m.id)"
+                        class="shrink-0 w-1.5 h-1.5 rounded-full bg-indigo-500"
+                      ></span>
+                    </label>
+                  </template>
+                </div>
+              </div>
+            </template>
 
             <div class="an-modal-footer mt-4">
               <button @click="closeRoleModules" class="an-btn-primary">Cerrar</button>
@@ -785,7 +995,7 @@ import { branchService } from '@/services/branchService'
 import { useAuthStore } from '@/store/auth'
 import api from '@/services/api'
 import { te, teError } from '@/i18n'
-import { Pencil, Trash2, Layers, UserPlus, UserMinus } from 'lucide-vue-next'
+import { Pencil, Trash2, Layers, UserPlus, UserMinus, Power } from 'lucide-vue-next'
 
 const authStore = useAuthStore()
 
@@ -807,9 +1017,10 @@ function companyAvatarClass(name = '') {
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
 const allTabs = [
-  { key: 'branches', label: 'Sucursales',  prefix: 'sucursales' },
-  { key: 'personas', label: 'Personas',    prefix: 'personas' },
-  { key: 'roles',    label: 'Roles',       prefix: 'roles' },
+  { key: 'branches', label: 'Sucursales',   prefix: 'sucursales' },
+  { key: 'personas', label: 'Personas',     prefix: 'personas' },
+  { key: 'roles',    label: 'Roles',        prefix: 'roles' },
+  { key: 'apps',     label: 'Aplicaciones', prefix: 'empresas' },
 ]
 const visibleTabs = computed(() =>
   allTabs.filter(t => authStore.canPrefix(t.prefix))
@@ -847,6 +1058,11 @@ function selectCompany(c) {
   selected.value = c
   activeTab.value = 'branches'
   detailError.value = ''
+  // Reset per-company lazy state so data reloads for the new company.
+  rolesLoaded.value = false
+  roles.value = []
+  companyApps.value = []
+  companyAppsLoaded.value = false
   loadBranches(c.id)
 }
 
@@ -858,6 +1074,7 @@ const createSaving = ref(false)
 const createError  = ref('')
 const createForm   = reactive({
   name: '', status: 'active', withAdmin: false,
+  selectedAppIds: [],
   admin: { firstName: '', firstSurname: '', username: '', email: '', password: '' },
 })
 
@@ -865,16 +1082,22 @@ function openCreate() {
   createForm.name   = ''
   createForm.status = 'active'
   createForm.withAdmin = false
+  createForm.selectedAppIds = []
   Object.assign(createForm.admin, { firstName: '', firstSurname: '', username: '', email: '', password: '' })
   createError.value = ''
   createOpen.value  = true
+  loadApplications()
 }
 
 async function submitCreate() {
   createError.value  = ''
   createSaving.value = true
   try {
-    const payload = { name: createForm.name.trim(), status: createForm.status }
+    const payload = {
+      name:           createForm.name.trim(),
+      status:         createForm.status,
+      applicationIds: createForm.selectedAppIds.length ? createForm.selectedAppIds : undefined,
+    }
     if (createForm.withAdmin) {
       payload.admin = {
         firstName:    createForm.admin.firstName.trim(),
@@ -901,12 +1124,25 @@ const editCompanyOpen   = ref(false)
 const editCompanySaving = ref(false)
 const editCompanyError  = ref('')
 const editCompanyForm   = reactive({ name: '', status: 'active' })
+const editCompanyApps   = ref([])
+const loadingEditApps   = ref(false)
 
-function openEditCompany() {
+async function openEditCompany() {
   editCompanyForm.name   = selected.value.name
   editCompanyForm.status = selected.value.status
   editCompanyError.value = ''
   editCompanyOpen.value  = true
+  loadApplications()
+  loadingEditApps.value = true
+  try {
+    const res = await api.get(`/companies/${selected.value.id}/applications`)
+    const apps = res.data?.data ?? res.data ?? []
+    editCompanyApps.value = apps.map(a => a.appId)
+  } catch {
+    editCompanyApps.value = []
+  } finally {
+    loadingEditApps.value = false
+  }
 }
 
 async function submitEditCompany() {
@@ -921,6 +1157,24 @@ async function submitEditCompany() {
     const idx = companies.value.findIndex(c => c.id === updated.id)
     if (idx !== -1) companies.value[idx] = updated
     selected.value = updated
+
+    // Sync app licenses: add new, remove deleted
+    const currentRes = await api.get(`/companies/${updated.id}/applications`)
+    const currentApps = (currentRes.data?.data ?? currentRes.data ?? []).map(a => a.appId)
+    const desired = editCompanyApps.value
+    for (const appId of desired) {
+      if (!currentApps.includes(appId)) {
+        await api.post(`/companies/${updated.id}/applications`, { appId })
+      }
+    }
+    for (const appId of currentApps) {
+      if (!desired.includes(appId)) {
+        await api.delete(`/companies/${updated.id}/applications/${appId}`)
+      }
+    }
+    companyAppsLoaded.value = false
+    rolesLoaded.value = false
+
     editCompanyOpen.value = false
   } catch (e) {
     editCompanyError.value = teError(e)
@@ -1054,7 +1308,11 @@ watch(activeTab, (tab) => {
 async function loadRoles() {
   loadingRoles.value = true
   try {
-    const res = await api.get('/roles', { params: { pageSize: 200 } })
+    const params = { pageSize: 200 }
+    // Pass company_id so the backend filters roles to only the apps
+    // licensed for this company (even when logged in as super-admin).
+    if (selected.value?.id) params.company_id = selected.value.id
+    const res = await api.get('/roles', { params })
     roles.value = res.data?.data ?? []
     rolesLoaded.value = true
   } catch {
@@ -1063,6 +1321,74 @@ async function loadRoles() {
     loadingRoles.value = false
   }
 }
+
+// ── Company Applications (licensing) ─────────────────────────────────────────
+const companyApps       = ref([])
+const loadingCompanyApps = ref(false)
+const companyAppsLoaded = ref(false)
+const companyAppsError  = ref('')
+
+watch(activeTab, (tab) => {
+  if (tab === 'apps' && !companyAppsLoaded.value && selected.value) loadCompanyApps()
+})
+
+async function loadCompanyApps() {
+  if (!selected.value) return
+  loadingCompanyApps.value = true
+  companyAppsError.value   = ''
+  try {
+    const res = await api.get(`/companies/${selected.value.id}/applications`)
+    companyApps.value       = res.data?.data ?? res.data ?? []
+    companyAppsLoaded.value = true
+  } catch (e) {
+    companyAppsError.value = teError(e)
+  } finally {
+    loadingCompanyApps.value = false
+  }
+}
+
+async function addCompanyApp(appId) {
+  try {
+    await api.post(`/companies/${selected.value.id}/applications`, { appId })
+    await loadCompanyApps()
+  } catch (e) {
+    companyAppsError.value = teError(e)
+  }
+}
+
+async function toggleCompanyAppStatus(app) {
+  const newStatus = app.status === 'active' ? 'inactive' : 'active'
+  try {
+    await api.patch(`/companies/${selected.value.id}/applications/${app.appId}`, { status: newStatus })
+    app.status = newStatus
+  } catch (e) {
+    companyAppsError.value = teError(e)
+  }
+}
+
+const removeAppTarget      = ref(null)
+const removingApp          = ref(false)
+const addAppOpen           = ref(false)
+function confirmRemoveApp(app) { removeAppTarget.value = app }
+async function doRemoveApp() {
+  if (!removeAppTarget.value) return
+  removingApp.value = true
+  try {
+    await api.delete(`/companies/${selected.value.id}/applications/${removeAppTarget.value.appId}`)
+    companyApps.value = companyApps.value.filter(a => a.appId !== removeAppTarget.value.appId)
+    removeAppTarget.value = null
+  } catch (e) {
+    companyAppsError.value = teError(e)
+  } finally {
+    removingApp.value = false
+  }
+}
+
+// Apps available to add (all apps not yet licensed by the company)
+const availableAppsToAdd = computed(() => {
+  const licensed = new Set(companyApps.value.map(a => a.appId))
+  return applications.value.filter(a => !licensed.has(a.id))
+})
 
 // ── Create role ─────────────────────────────────────────────────────────────
 
@@ -1338,6 +1664,65 @@ async function doRemovePerson() {
   }
 }
 
+// ── Roles filter / sort ───────────────────────────────────────────────────────
+const rolesSearch       = ref('')
+const rolesAppFilter    = ref('')
+const rolesStatusFilter = ref('')
+const rolesSortKey      = ref('name')
+const rolesSortDir      = ref('asc')
+
+function toggleRolesSort(key) {
+  if (rolesSortKey.value === key) {
+    rolesSortDir.value = rolesSortDir.value === 'asc' ? 'desc' : 'asc'
+  } else {
+    rolesSortKey.value = key
+    rolesSortDir.value = 'asc'
+  }
+}
+
+function sortIcon(key) {
+  if (rolesSortKey.value !== key) return '↕'
+  return rolesSortDir.value === 'asc' ? '↑' : '↓'
+}
+
+const rolesUniqueApps = computed(() => {
+  const names = new Set(roles.value.map(r => r.appName || appName(r.applicationId)))
+  return [...names].filter(Boolean).sort()
+})
+
+const filteredSortedRoles = computed(() => {
+  let list = roles.value
+  const s = rolesSearch.value.toLowerCase()
+  if (s) list = list.filter(r => r.name.toLowerCase().includes(s))
+  if (rolesAppFilter.value)
+    list = list.filter(r => (r.appName || appName(r.applicationId)) === rolesAppFilter.value)
+  if (rolesStatusFilter.value)
+    list = list.filter(r => r.status === rolesStatusFilter.value)
+  const key = rolesSortKey.value
+  const dir = rolesSortDir.value === 'asc' ? 1 : -1
+  return [...list].sort((a, b) => {
+    const av = key === 'appName' ? (a.appName || appName(a.applicationId) || '') : (a[key] ?? '')
+    const bv = key === 'appName' ? (b.appName || appName(b.applicationId) || '') : (b[key] ?? '')
+    return av < bv ? -dir : av > bv ? dir : 0
+  })
+})
+
+// ── Module modal search + collapsible groups ──────────────────────────────────
+const collapsedGroups   = ref(new Set())
+const modalModuleSearch = ref('')
+
+function toggleGroup(prefix) {
+  const s = new Set(collapsedGroups.value)
+  if (s.has(prefix)) s.delete(prefix)
+  else s.add(prefix)
+  collapsedGroups.value = s
+}
+
+function expandAllGroups()   { collapsedGroups.value = new Set() }
+function collapseAllGroups() {
+  collapsedGroups.value = new Set(roleModulesGrouped.value.map(g => g.prefix))
+}
+
 // ── Role module assignment (checkbox modal) ─────────────────────────────────
 const roleModulesOpen       = ref(false)
 const roleModulesTarget     = ref(null)
@@ -1348,10 +1733,12 @@ const roleModulesSaving     = ref(false)
 const roleModulesError      = ref('')
 
 async function openRoleModules(role) {
-  roleModulesTarget.value = role
-  roleModulesError.value  = ''
-  roleModulesOpen.value   = true
+  roleModulesTarget.value  = role
+  roleModulesError.value   = ''
+  roleModulesOpen.value    = true
   loadingRoleModules.value = true
+  modalModuleSearch.value  = ''
+  collapsedGroups.value    = new Set()
 
   try {
     // Load all modules for the role's application
@@ -1414,8 +1801,13 @@ const rolesGroupedByApp = computed(() => {
 const roleModulesAppName = computed(() => roleModulesTarget.value?.appName || '')
 
 const roleModulesGrouped = computed(() => {
+  const searchLower = modalModuleSearch.value.toLowerCase()
+  const searching   = searchLower.length > 0
   const map = new Map()
   for (const m of roleModulesAppModules.value) {
+    const displayName = (m.displayName || m.name).toLowerCase()
+    const modKey      = m.name.toLowerCase()
+    if (searching && !displayName.includes(searchLower) && !modKey.includes(searchLower)) continue
     const prefix = m.name.includes('.') ? m.name.split('.')[0] : 'general'
     if (!map.has(prefix)) map.set(prefix, [])
     map.get(prefix).push(m)
@@ -1424,6 +1816,7 @@ const roleModulesGrouped = computed(() => {
     prefix,
     label: prefix.charAt(0).toUpperCase() + prefix.slice(1).replace(/_/g, ' '),
     modules,
+    isCollapsed: !searching && collapsedGroups.value.has(prefix),
   }))
 })
 </script>

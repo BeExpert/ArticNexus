@@ -165,3 +165,33 @@ func (h *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 
 	renderOK(w, nil, "Contraseña actualizada correctamente. Ya puedes iniciar sesión.")
 }
+
+// SelectCompany godoc
+// POST /api/v1/auth/select-company (JWT required — no module guard)
+// Issues a new JWT scoped to the given company. Used when a user belongs to
+// more than one company and must pick which one to work with.
+func (h *AuthHandler) SelectCompany(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.UserIDFromContext(r.Context())
+	if !ok {
+		renderErrorCode(w, http.StatusUnauthorized, domain.ErrCodeAuthUnauthenticated, "unauthenticated", nil)
+		return
+	}
+
+	var req struct {
+		CompanyID int64 `json:"companyId"`
+	}
+	if !decodeJSON(w, r, &req) {
+		return
+	}
+	if req.CompanyID <= 0 {
+		renderErrorCode(w, http.StatusBadRequest, domain.ErrCodeValidation, "companyId es requerido", nil)
+		return
+	}
+
+	resp, err := h.authService.SelectCompany(userID, req.CompanyID)
+	if err != nil {
+		renderAppError(w, err)
+		return
+	}
+	renderOK(w, resp, "empresa seleccionada")
+}

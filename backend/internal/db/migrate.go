@@ -30,10 +30,11 @@ func Migrate(database *gorm.DB, migrationsDir string) error {
 		return fmt.Errorf("could not read migrations directory %q: %w", migrationsDir, err)
 	}
 
-	// Collect .sql files and sort them so they execute in version order.
+	// Collect .up.sql files and sort them so they execute in version order.
+	// .down.sql files are excluded — they are for manual rollback only.
 	var files []string
 	for _, e := range entries {
-		if !e.IsDir() && strings.HasSuffix(e.Name(), ".sql") {
+		if !e.IsDir() && strings.HasSuffix(e.Name(), ".sql") && !strings.Contains(e.Name(), ".down.") {
 			files = append(files, filepath.Join(migrationsDir, e.Name()))
 		}
 	}

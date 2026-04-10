@@ -10,6 +10,8 @@ import (
 type RoleRepository interface {
 	FindByID(id int64) (*domain.Role, error)
 	FindAll(params domain.PaginationParams) ([]domain.Role, int64, error)
+	// FindAllByAppIDs filters roles to only those belonging to the given app IDs.
+	FindAllByAppIDs(appIDs []int64, params domain.PaginationParams) ([]domain.Role, int64, error)
 	FindByApplication(appID int64, params domain.PaginationParams) ([]domain.Role, int64, error)
 	Create(role *domain.Role) error
 	Update(role *domain.Role) error
@@ -47,6 +49,18 @@ func (r *roleRepository) FindAll(params domain.PaginationParams) ([]domain.Role,
 	}
 
 	err := r.db.Preload("Application").Limit(params.PageSize).Offset(params.Offset()).Find(&roles).Error
+	return roles, total, err
+}
+
+func (r *roleRepository) FindAllByAppIDs(appIDs []int64, params domain.PaginationParams) ([]domain.Role, int64, error) {
+	var roles []domain.Role
+	var total int64
+
+	base := r.db.Model(&domain.Role{}).Where("app_id IN ?", appIDs)
+	if err := base.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	err := base.Preload("Application").Limit(params.PageSize).Offset(params.Offset()).Find(&roles).Error
 	return roles, total, err
 }
 

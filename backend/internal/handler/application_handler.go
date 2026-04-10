@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"articnexus/backend/internal/domain"
+	"articnexus/backend/internal/middleware"
 	"articnexus/backend/internal/service"
 )
 
@@ -23,7 +24,8 @@ func NewApplicationHandler(appService service.ApplicationService) *ApplicationHa
 // GET /api/v1/applications
 func (h *ApplicationHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 	params := paginationFromQuery(r)
-	apps, total, err := h.appService.GetAll(params)
+	companyID, _ := middleware.CompanyIDFromContext(r.Context())
+	apps, total, err := h.appService.GetAll(companyID, params)
 	if err != nil {
 		renderInternalError(w)
 		return

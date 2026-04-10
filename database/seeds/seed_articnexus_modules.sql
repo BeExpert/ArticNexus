@@ -56,9 +56,11 @@ FROM app, (VALUES
     ('empresas.editar',   'Editar empresas',   'Puede modificar los datos de empresas existentes'),
     ('empresas.eliminar', 'Eliminar empresas', 'Puede eliminar empresas del sistema'),
     -- ── Personas ────────────────────────────────────────────────────
-    ('personas.ver',      'Ver personas',    'Puede ver las personas asignadas a una empresa'),
-    ('personas.editar',   'Editar personas', 'Puede modificar los datos de personas'),
-    ('personas.eliminar', 'Quitar personas', 'Puede quitar personas de una empresa')
+    ('personas.ver',         'Ver personas',            'Puede ver las personas asignadas a una empresa'),
+    ('personas.crear',       'Agregar personas',        'Puede agregar personas a una empresa'),
+    ('personas.editar',      'Editar personas',         'Puede modificar los datos de personas'),
+    ('personas.eliminar',    'Quitar personas',         'Puede quitar personas de una empresa'),
+    ('personas.asignar_rol', 'Asignar rol a persona',   'Puede asignar y desasignar roles a personas de una empresa')
 ) AS v(mod_name, display_name, description)
 ON CONFLICT (app_id, mod_name) DO UPDATE SET
     mod_display_name = EXCLUDED.mod_display_name,

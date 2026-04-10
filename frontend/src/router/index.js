@@ -17,7 +17,8 @@ const router = createRouter({
     {
       path: '/login',
       name: 'login',
-      component: () => import('@/views/Login.vue')
+      component: () => import('@/views/Login.vue'),
+      meta: { public: true }
     },
     {
       path: '/unete',
@@ -28,12 +29,14 @@ const router = createRouter({
     {
       path: '/forgot-password',
       name: 'forgot-password',
-      component: () => import('@/views/ForgotPassword.vue')
+      component: () => import('@/views/ForgotPassword.vue'),
+      meta: { public: true }
     },
     {
       path: '/reset-password',
       name: 'reset-password',
-      component: () => import('@/views/ResetPassword.vue')
+      component: () => import('@/views/ResetPassword.vue'),
+      meta: { public: true }
     },
     {
       path: '/profile',
@@ -62,6 +65,11 @@ const router = createRouter({
       meta: { fullWidth: true }
     },
     {
+      path: '/licenses',
+      name: 'licenses',
+      component: () => import('@/views/Licenses.vue')
+    },
+    {
       path: '/demo-links',
       name: 'demo-links',
       component: () => import('@/views/DemoLinks.vue')
@@ -74,21 +82,27 @@ const router = createRouter({
   ]
 })
 
-const publicRoutes = ['landing', 'login', 'unete', 'forgot-password', 'reset-password']
-
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   const token = localStorage.getItem('token')
   const isAuthenticated = !!token
 
-  if (!publicRoutes.includes(to.name) && !isAuthenticated) {
-    next({ name: 'login' })
-  } else if (to.name === 'landing' && isAuthenticated) {
-    next({ name: 'dashboard' })
-  } else if (to.name === 'login' && isAuthenticated) {
-    next({ name: 'dashboard' })
-  } else {
-    next()
+  // Lazy-import the store to avoid circular dependency at module load time.
+  const { useAuthStore } = await import('@/store/auth')
+  const authStore = useAuthStore()
+
+  // A user in the middle of company selection must stay on /login.
+  if (authStore.pendingCompanySelection) {
+    if (to.name !== 'login') return next({ name: 'login' })
+    return next()
   }
+
+  if (!to.meta.public && !isAuthenticated) {
+    return next({ name: 'login' })
+  }
+  if ((to.name === 'landing' || to.name === 'login') && isAuthenticated) {
+    return next({ name: 'dashboard' })
+  }
+  next()
 })
 
 export default router

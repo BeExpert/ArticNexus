@@ -10,6 +10,8 @@ import (
 type ApplicationRepository interface {
 	FindByID(id int64) (*domain.Application, error)
 	FindAll(params domain.PaginationParams) ([]domain.Application, int64, error)
+	// FindAllByIDs filters applications to the given IDs.
+	FindAllByIDs(ids []int64, params domain.PaginationParams) ([]domain.Application, int64, error)
 	Create(app *domain.Application) error
 	Update(app *domain.Application) error
 	Delete(id int64) error
@@ -41,6 +43,18 @@ func (r *applicationRepository) FindAll(params domain.PaginationParams) ([]domai
 	}
 
 	err := r.db.Limit(params.PageSize).Offset(params.Offset()).Find(&apps).Error
+	return apps, total, err
+}
+
+func (r *applicationRepository) FindAllByIDs(ids []int64, params domain.PaginationParams) ([]domain.Application, int64, error) {
+	var apps []domain.Application
+	var total int64
+
+	base := r.db.Model(&domain.Application{}).Where("app_id IN ?", ids)
+	if err := base.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	err := base.Limit(params.PageSize).Offset(params.Offset()).Find(&apps).Error
 	return apps, total, err
 }
 

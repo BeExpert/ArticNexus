@@ -65,6 +65,7 @@ func New(
 			r.Get("/auth/me", authHandler.Me)
 			r.Put("/auth/me", authHandler.UpdateMe)
 			r.Get("/auth/me/companies", authHandler.MyCompanies)
+			r.Post("/auth/select-company", authHandler.SelectCompany)
 
 			// Stats (dashboard).
 			r.With(middleware.RequireModule("dashboard.ver")).Get("/stats", statsHandler.GetStats)
@@ -108,8 +109,18 @@ func New(
 						r.Route("/{userId}", func(r chi.Router) {
 							r.With(middleware.RequireModule("personas.eliminar")).Delete("/", companyHandler.RemoveUserFromCompany)
 							// User role assignment.
-							r.With(middleware.RequireModule("roles.asignar_modulos")).Post("/roles", companyHandler.AssignUserRole)
-							r.With(middleware.RequireModule("roles.asignar_modulos")).Delete("/roles", companyHandler.RemoveUserRole)
+						r.With(middleware.RequireModule("personas.asignar_rol")).Post("/roles", companyHandler.AssignUserRole)
+						r.With(middleware.RequireModule("personas.asignar_rol")).Delete("/roles", companyHandler.RemoveUserRole)
+						})
+					})
+
+					// Company applications (licensing) sub-resource.
+					r.Route("/applications", func(r chi.Router) {
+						r.With(middleware.RequireModule("empresas.ver")).Get("/", companyHandler.GetCompanyApps)
+						r.With(middleware.RequireModule("empresas.editar")).Post("/", companyHandler.AddCompanyApp)
+						r.Route("/{appId}", func(r chi.Router) {
+							r.With(middleware.RequireModule("empresas.editar")).Patch("/", companyHandler.UpdateCompanyAppStatus)
+							r.With(middleware.RequireModule("empresas.editar")).Delete("/", companyHandler.RemoveCompanyApp)
 						})
 					})
 				})

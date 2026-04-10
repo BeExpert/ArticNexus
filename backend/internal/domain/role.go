@@ -22,6 +22,8 @@ func (Role) TableName() string { return "tblRoles_ROL" }
 type CreateRoleRequest struct {
 	ApplicationID int64  `json:"applicationId" validate:"required"`
 	Name          string `json:"name"          validate:"required,max=100"`
+	// CompanyID is injected by the handler from the JWT claim; not accepted from the body.
+	CompanyID int64 `json:"-"`
 }
 
 type UpdateRoleRequest struct {

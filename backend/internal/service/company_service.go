@@ -44,6 +44,7 @@ type companyService struct {
 	roleRepo        repository.RoleRepository
 	personRepo      repository.PersonRepository
 	userRepo        repository.UserRepository
+	companyAppRepo  repository.CompanyApplicationRepository
 	superAdminUser  string
 }
 
@@ -56,6 +57,7 @@ func NewCompanyService(
 	roleRepo repository.RoleRepository,
 	personRepo repository.PersonRepository,
 	userRepo repository.UserRepository,
+	companyAppRepo repository.CompanyApplicationRepository,
 	superAdminUser string,
 ) CompanyService {
 	return &companyService{
@@ -66,6 +68,7 @@ func NewCompanyService(
 		roleRepo:        roleRepo,
 		personRepo:      personRepo,
 		userRepo:        userRepo,
+		companyAppRepo:  companyAppRepo,
 		superAdminUser:  superAdminUser,
 	}
 }
@@ -191,6 +194,20 @@ func (s *companyService) Create(req domain.CreateCompanyRequest) (*domain.Compan
 
 	if txErr != nil {
 		return nil, txErr
+	}
+
+	// License the company for its requested applications.
+	// Always done outside the transaction (no rollback risk).
+	appIDs := req.ApplicationIDs
+	if len(appIDs) == 0 {
+		// Default: license for ARTICNEXUS itself.
+		var articApp struct{ AppID int64 }
+		if err := s.db.Raw(`SELECT app_id FROM "tblApplications_APP" WHERE app_code = 'ARTICNEXUS' LIMIT 1`).Scan(&articApp).Error; err == nil && articApp.AppID > 0 {
+			appIDs = []int64{articApp.AppID}
+		}
+	}
+	if len(appIDs) > 0 {
+		_ = s.companyAppRepo.BulkCreate(result.ID, appIDs)
 	}
 
 	resp := mapCompanyToResponse(result)

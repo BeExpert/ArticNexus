@@ -63,6 +63,18 @@ func SeedArticDevAndDemoUsers(database *gorm.DB, cfg *config.Config) error {
 			return fmt.Errorf("seed articdev: select branch: %w", err)
 		}
 
+		// ── 2b. License all active apps for ArticDev ──────────────────────────
+		if err := tx.Exec(
+			`INSERT INTO "tblCompanyApplications_CAP" (com_id, app_id, cap_status)
+			 SELECT ?, app_id, 'active'
+			 FROM "tblApplications_APP"
+			 WHERE app_status = 'active'
+			 ON CONFLICT (com_id, app_id) DO NOTHING`,
+			companyID,
+		).Error; err != nil {
+			return fmt.Errorf("seed articdev: license apps: %w", err)
+		}
+
 		// ── 3. Per-application demo users + DEMO roles ────────────────────────
 		apps := []struct{ code, label string }{
 			{"OFTADATA", "OftaData"},

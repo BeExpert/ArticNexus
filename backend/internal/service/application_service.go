@@ -8,7 +8,8 @@ import (
 // ApplicationService handles business logic for applications and their modules.
 type ApplicationService interface {
 	GetByID(id int64) (*domain.ApplicationResponse, error)
-	GetAll(params domain.PaginationParams) ([]domain.ApplicationResponse, int64, error)
+	// GetAll returns all applications. If companyID > 0 only licensed apps are returned.
+	GetAll(companyID int64, params domain.PaginationParams) ([]domain.ApplicationResponse, int64, error)
 	Create(req domain.CreateApplicationRequest) (*domain.ApplicationResponse, error)
 	Update(id int64, req domain.UpdateApplicationRequest) (*domain.ApplicationResponse, error)
 	Delete(id int64) error
@@ -22,13 +23,18 @@ type ApplicationService interface {
 }
 
 type applicationService struct {
-	appRepo    repository.ApplicationRepository
-	moduleRepo repository.ModuleRepository
+	appRepo        repository.ApplicationRepository
+	moduleRepo     repository.ModuleRepository
+	companyAppRepo repository.CompanyApplicationRepository
 }
 
 // NewApplicationService returns an ApplicationService implementation.
-func NewApplicationService(appRepo repository.ApplicationRepository, moduleRepo repository.ModuleRepository) ApplicationService {
-	return &applicationService{appRepo: appRepo, moduleRepo: moduleRepo}
+func NewApplicationService(
+	appRepo repository.ApplicationRepository,
+	moduleRepo repository.ModuleRepository,
+	companyAppRepo repository.CompanyApplicationRepository,
+) ApplicationService {
+	return &applicationService{appRepo: appRepo, moduleRepo: moduleRepo, companyAppRepo: companyAppRepo}
 }
 
 func (s *applicationService) GetByID(id int64) (*domain.ApplicationResponse, error) {
@@ -40,8 +46,23 @@ func (s *applicationService) GetByID(id int64) (*domain.ApplicationResponse, err
 	return &resp, nil
 }
 
-func (s *applicationService) GetAll(params domain.PaginationParams) ([]domain.ApplicationResponse, int64, error) {
-	apps, total, err := s.appRepo.FindAll(params)
+func (s *applicationService) GetAll(companyID int64, params domain.PaginationParams) ([]domain.ApplicationResponse, int64, error) {
+	var apps []domain.Application
+	var total int64
+	var err error
+
+	if companyID > 0 {
+		appIDs, aErr := s.companyAppRepo.GetLicensedAppIDs(companyID)
+		if aErr != nil {
+			return nil, 0, aErr
+		}
+		if len(appIDs) == 0 {
+			return []domain.ApplicationResponse{}, 0, nil
+		}
+		apps, total, err = s.appRepo.FindAllByIDs(appIDs, params)
+	} else {
+		apps, total, err = s.appRepo.FindAll(params)
+	}
 	if err != nil {
 		return nil, 0, err
 	}

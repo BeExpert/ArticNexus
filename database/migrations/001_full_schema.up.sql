@@ -1,8 +1,15 @@
 -- =============================================================
 -- ArticNexus — Full Schema + Seed (Production Initial State)
+-- File: database/migrations/001_full_schema.up.sql
+--
 -- This single file represents the canonical database state.
--- Run once on a fresh database: psql $DATABASE_URL -f 001_full_schema.sql
--- Idempotent: safe to apply on already-initialized databases.
+-- Run on a fresh database:
+--   psql $DATABASE_URL -f 001_full_schema.up.sql
+-- Or via the backend:
+--   ./api -reset-db        (drops + recreates schema + runs this)
+--   ./api -migrate         (runs this idempotently on existing DB)
+--
+-- Idempotent: uses IF NOT EXISTS, ON CONFLICT DO NOTHING/UPDATE.
 -- =============================================================
 
 BEGIN;
@@ -90,6 +97,15 @@ CREATE TABLE IF NOT EXISTS "tblApplications_APP" (
     deleted_at TIMESTAMPTZ
 );
 
+CREATE TABLE IF NOT EXISTS "tblCompanyApplications_CAP" (
+    cap_id         BIGSERIAL    PRIMARY KEY,
+    com_id         BIGINT       NOT NULL REFERENCES "tblCompanies_COM"(com_id) ON DELETE CASCADE,
+    app_id         BIGINT       NOT NULL REFERENCES "tblApplications_APP"(app_id) ON DELETE CASCADE,
+    cap_status     VARCHAR(20)  NOT NULL DEFAULT 'active' CHECK (cap_status IN ('active', 'inactive')),
+    cap_created_at TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    UNIQUE (com_id, app_id)
+);
+
 CREATE TABLE IF NOT EXISTS "tblRoles_ROL" (
     rol_id     BIGSERIAL    PRIMARY KEY,
     app_id     BIGINT       NOT NULL REFERENCES "tblApplications_APP"(app_id),
@@ -157,10 +173,12 @@ CREATE TABLE IF NOT EXISTS "tblDemoLinks_DML" (
 -- SECTION 2: INDEXES
 -- =============================================================
 
-CREATE INDEX IF NOT EXISTS idx_prt_token_hash ON "tblPasswordResetTokens_PRT"(prt_token_hash);
-CREATE INDEX IF NOT EXISTS idx_prt_usr_id     ON "tblPasswordResetTokens_PRT"(usr_id);
+CREATE INDEX IF NOT EXISTS idx_prt_token_hash      ON "tblPasswordResetTokens_PRT"(prt_token_hash);
+CREATE INDEX IF NOT EXISTS idx_prt_usr_id          ON "tblPasswordResetTokens_PRT"(usr_id);
 CREATE INDEX IF NOT EXISTS idx_demolinks_token_hash ON "tblDemoLinks_DML"(dml_token_hash);
 CREATE INDEX IF NOT EXISTS idx_demolinks_app_code   ON "tblDemoLinks_DML"(dml_app_code);
+CREATE INDEX IF NOT EXISTS idx_cap_com_id           ON "tblCompanyApplications_CAP"(com_id);
+CREATE INDEX IF NOT EXISTS idx_cap_app_id           ON "tblCompanyApplications_CAP"(app_id);
 
 -- =============================================================
 -- SECTION 3: TRIGGERS (auto-update updated_at)
@@ -176,39 +194,25 @@ $$ LANGUAGE plpgsql;
 
 DO $$ BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'trg_persons_updated_at') THEN
-        CREATE TRIGGER trg_persons_updated_at
-            BEFORE UPDATE ON "tblPersons_PER"
-            FOR EACH ROW EXECUTE FUNCTION fn_set_updated_at();
+        CREATE TRIGGER trg_persons_updated_at BEFORE UPDATE ON "tblPersons_PER" FOR EACH ROW EXECUTE FUNCTION fn_set_updated_at();
     END IF;
     IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'trg_users_updated_at') THEN
-        CREATE TRIGGER trg_users_updated_at
-            BEFORE UPDATE ON "tblUsers_USR"
-            FOR EACH ROW EXECUTE FUNCTION fn_set_updated_at();
+        CREATE TRIGGER trg_users_updated_at BEFORE UPDATE ON "tblUsers_USR" FOR EACH ROW EXECUTE FUNCTION fn_set_updated_at();
     END IF;
     IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'trg_companies_updated_at') THEN
-        CREATE TRIGGER trg_companies_updated_at
-            BEFORE UPDATE ON "tblCompanies_COM"
-            FOR EACH ROW EXECUTE FUNCTION fn_set_updated_at();
+        CREATE TRIGGER trg_companies_updated_at BEFORE UPDATE ON "tblCompanies_COM" FOR EACH ROW EXECUTE FUNCTION fn_set_updated_at();
     END IF;
     IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'trg_branches_updated_at') THEN
-        CREATE TRIGGER trg_branches_updated_at
-            BEFORE UPDATE ON "tblBranches_BRA"
-            FOR EACH ROW EXECUTE FUNCTION fn_set_updated_at();
+        CREATE TRIGGER trg_branches_updated_at BEFORE UPDATE ON "tblBranches_BRA" FOR EACH ROW EXECUTE FUNCTION fn_set_updated_at();
     END IF;
     IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'trg_applications_updated_at') THEN
-        CREATE TRIGGER trg_applications_updated_at
-            BEFORE UPDATE ON "tblApplications_APP"
-            FOR EACH ROW EXECUTE FUNCTION fn_set_updated_at();
+        CREATE TRIGGER trg_applications_updated_at BEFORE UPDATE ON "tblApplications_APP" FOR EACH ROW EXECUTE FUNCTION fn_set_updated_at();
     END IF;
     IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'trg_roles_updated_at') THEN
-        CREATE TRIGGER trg_roles_updated_at
-            BEFORE UPDATE ON "tblRoles_ROL"
-            FOR EACH ROW EXECUTE FUNCTION fn_set_updated_at();
+        CREATE TRIGGER trg_roles_updated_at BEFORE UPDATE ON "tblRoles_ROL" FOR EACH ROW EXECUTE FUNCTION fn_set_updated_at();
     END IF;
     IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'trg_modules_updated_at') THEN
-        CREATE TRIGGER trg_modules_updated_at
-            BEFORE UPDATE ON "tblModules_MOD"
-            FOR EACH ROW EXECUTE FUNCTION fn_set_updated_at();
+        CREATE TRIGGER trg_modules_updated_at BEFORE UPDATE ON "tblModules_MOD" FOR EACH ROW EXECUTE FUNCTION fn_set_updated_at();
     END IF;
 END $$;
 
@@ -241,8 +245,10 @@ FROM app, (VALUES
     ('sucursales.editar',           'Editar sucursal',                 'Puede modificar datos de sucursales'),
     ('sucursales.eliminar',         'Eliminar sucursal',               'Puede eliminar sucursales'),
     ('personas.ver',                'Ver personas',                    'Puede ver personas asignadas a una empresa'),
+    ('personas.crear',              'Agregar personas',                'Puede agregar personas a una empresa'),
     ('personas.editar',             'Editar personas',                 'Puede modificar datos de personas'),
     ('personas.eliminar',           'Quitar personas',                 'Puede quitar personas de una empresa'),
+    ('personas.asignar_rol',        'Asignar rol a persona',           'Puede asignar y desasignar roles a personas de una empresa'),
     ('usuarios.ver',                'Ver usuarios',                    'Puede ver el listado de usuarios'),
     ('usuarios.crear',              'Crear usuarios',                  'Puede crear nuevas cuentas de usuario'),
     ('usuarios.editar',             'Editar usuarios',                 'Puede modificar cuentas de usuario'),
@@ -354,38 +360,21 @@ ON CONFLICT (app_id, mod_name) DO UPDATE SET
 -- SECTION 8: SEED DATA — ROLES
 -- =============================================================
 
--- ArticNexus roles
 INSERT INTO "tblRoles_ROL" (app_id, rol_name, rol_status, created_at, updated_at)
 SELECT a.app_id, v.name, 'active', NOW(), NOW()
-FROM "tblApplications_APP" a, (VALUES
-    ('Super Administrador'),
-    ('Administrador de Empresa')
-) AS v(name)
+FROM "tblApplications_APP" a, (VALUES ('Super Administrador'),('Administrador de Empresa')) AS v(name)
 WHERE a.app_code = 'ARTICNEXUS'
 ON CONFLICT (app_id, rol_name) DO NOTHING;
 
--- OftaData roles
 INSERT INTO "tblRoles_ROL" (app_id, rol_name, rol_status, created_at, updated_at)
 SELECT a.app_id, v.name, 'active', NOW(), NOW()
-FROM "tblApplications_APP" a, (VALUES
-    ('SuperAdmin'),
-    ('Secretaria'),
-    ('Optometrista'),
-    ('Recepcionista')
-) AS v(name)
+FROM "tblApplications_APP" a, (VALUES ('SuperAdmin'),('Secretaria'),('Optometrista'),('Recepcionista')) AS v(name)
 WHERE a.app_code = 'OFTADATA'
 ON CONFLICT (app_id, rol_name) DO NOTHING;
 
--- VetData roles
 INSERT INTO "tblRoles_ROL" (app_id, rol_name, rol_status, created_at, updated_at)
 SELECT a.app_id, v.name, 'active', NOW(), NOW()
-FROM "tblApplications_APP" a, (VALUES
-    ('Admin'),
-    ('Veterinario'),
-    ('Asistente'),
-    ('Recepcionista'),
-    ('Cliente')
-) AS v(name)
+FROM "tblApplications_APP" a, (VALUES ('Admin'),('Veterinario'),('Asistente'),('Recepcionista'),('Cliente')) AS v(name)
 WHERE a.app_code = 'VETDATA'
 ON CONFLICT (app_id, rol_name) DO NOTHING;
 
@@ -393,165 +382,103 @@ ON CONFLICT (app_id, rol_name) DO NOTHING;
 -- SECTION 9: SEED DATA — ROLE-MODULE ASSIGNMENTS
 -- =============================================================
 
--- ArticNexus: Super Administrador → todos los módulos
+-- ArticNexus: Super Administrador → ALL modules
 INSERT INTO "tblRoleModules_RMO" (rol_id, mod_id, created_at)
 SELECT r.rol_id, m.mod_id, NOW()
 FROM "tblRoles_ROL" r
 JOIN "tblApplications_APP" a ON a.app_id = r.app_id
 JOIN "tblModules_MOD" m ON m.app_id = a.app_id
-WHERE a.app_code = 'ARTICNEXUS'
-  AND r.rol_name = 'Super Administrador'
-  AND m.mod_status = 'active'
+WHERE a.app_code = 'ARTICNEXUS' AND r.rol_name = 'Super Administrador' AND m.mod_status = 'active'
 ON CONFLICT (rol_id, mod_id) DO NOTHING;
 
--- ArticNexus: Administrador de Empresa → subset
+-- ArticNexus: Administrador de Empresa → subset (includes personas.crear + personas.asignar_rol)
 INSERT INTO "tblRoleModules_RMO" (rol_id, mod_id, created_at)
 SELECT r.rol_id, m.mod_id, NOW()
 FROM "tblRoles_ROL" r
 JOIN "tblApplications_APP" a ON a.app_id = r.app_id
 JOIN "tblModules_MOD" m ON m.app_id = a.app_id
-WHERE a.app_code = 'ARTICNEXUS'
-  AND r.rol_name = 'Administrador de Empresa'
+WHERE a.app_code = 'ARTICNEXUS' AND r.rol_name = 'Administrador de Empresa'
   AND m.mod_name IN (
     'dashboard.ver',
     'empresas.ver', 'empresas.crear', 'empresas.editar',
     'sucursales.ver', 'sucursales.crear', 'sucursales.editar', 'sucursales.eliminar',
-    'personas.ver', 'personas.editar', 'personas.eliminar',
+    'personas.ver', 'personas.crear', 'personas.editar', 'personas.eliminar', 'personas.asignar_rol',
     'roles.ver', 'roles.crear', 'roles.editar'
   )
 ON CONFLICT (rol_id, mod_id) DO NOTHING;
 
--- OftaData: SuperAdmin → todos los módulos
+-- OftaData: SuperAdmin → ALL modules
 INSERT INTO "tblRoleModules_RMO" (rol_id, mod_id, created_at)
 SELECT r.rol_id, m.mod_id, NOW()
-FROM "tblRoles_ROL" r
-JOIN "tblApplications_APP" a ON a.app_id = r.app_id
-JOIN "tblModules_MOD" m ON m.app_id = a.app_id
-WHERE a.app_code = 'OFTADATA'
-  AND r.rol_name = 'SuperAdmin'
-  AND m.mod_status = 'active'
+FROM "tblRoles_ROL" r JOIN "tblApplications_APP" a ON a.app_id = r.app_id JOIN "tblModules_MOD" m ON m.app_id = a.app_id
+WHERE a.app_code = 'OFTADATA' AND r.rol_name = 'SuperAdmin' AND m.mod_status = 'active'
 ON CONFLICT (rol_id, mod_id) DO NOTHING;
 
 -- OftaData: Secretaria
 INSERT INTO "tblRoleModules_RMO" (rol_id, mod_id, created_at)
 SELECT r.rol_id, m.mod_id, NOW()
-FROM "tblRoles_ROL" r
-JOIN "tblApplications_APP" a ON a.app_id = r.app_id
-JOIN "tblModules_MOD" m ON m.app_id = a.app_id
+FROM "tblRoles_ROL" r JOIN "tblApplications_APP" a ON a.app_id = r.app_id JOIN "tblModules_MOD" m ON m.app_id = a.app_id
 WHERE a.app_code = 'OFTADATA' AND r.rol_name = 'Secretaria'
-  AND m.mod_name IN (
-    'pacientes.ver', 'formularios.ver',
-    'citas.ver', 'citas.crear', 'citas.editar', 'citas.eliminar',
-    'cirugia.ver', 'notificaciones.ver'
-  )
+  AND m.mod_name IN ('pacientes.ver','formularios.ver','citas.ver','citas.crear','citas.editar','citas.eliminar','cirugia.ver','notificaciones.ver')
 ON CONFLICT (rol_id, mod_id) DO NOTHING;
 
 -- OftaData: Optometrista
 INSERT INTO "tblRoleModules_RMO" (rol_id, mod_id, created_at)
 SELECT r.rol_id, m.mod_id, NOW()
-FROM "tblRoles_ROL" r
-JOIN "tblApplications_APP" a ON a.app_id = r.app_id
-JOIN "tblModules_MOD" m ON m.app_id = a.app_id
+FROM "tblRoles_ROL" r JOIN "tblApplications_APP" a ON a.app_id = r.app_id JOIN "tblModules_MOD" m ON m.app_id = a.app_id
 WHERE a.app_code = 'OFTADATA' AND r.rol_name = 'Optometrista'
-  AND m.mod_name IN (
-    'pacientes.ver', 'pacientes.crear', 'pacientes.editar',
-    'formularios.ver', 'formularios.crear', 'formularios.editar',
-    'citas.ver', 'citas.crear',
-    'cirugia.ver', 'cirugia.crear', 'cirugia.editar',
-    'catalogos.ver', 'notificaciones.ver'
-  )
+  AND m.mod_name IN ('pacientes.ver','pacientes.crear','pacientes.editar','formularios.ver','formularios.crear','formularios.editar','citas.ver','citas.crear','cirugia.ver','cirugia.crear','cirugia.editar','catalogos.ver','notificaciones.ver')
 ON CONFLICT (rol_id, mod_id) DO NOTHING;
 
 -- OftaData: Recepcionista
 INSERT INTO "tblRoleModules_RMO" (rol_id, mod_id, created_at)
 SELECT r.rol_id, m.mod_id, NOW()
-FROM "tblRoles_ROL" r
-JOIN "tblApplications_APP" a ON a.app_id = r.app_id
-JOIN "tblModules_MOD" m ON m.app_id = a.app_id
+FROM "tblRoles_ROL" r JOIN "tblApplications_APP" a ON a.app_id = r.app_id JOIN "tblModules_MOD" m ON m.app_id = a.app_id
 WHERE a.app_code = 'OFTADATA' AND r.rol_name = 'Recepcionista'
-  AND m.mod_name IN (
-    'pacientes.ver', 'pacientes.crear',
-    'citas.ver', 'citas.crear',
-    'notificaciones.ver'
-  )
+  AND m.mod_name IN ('pacientes.ver','pacientes.crear','citas.ver','citas.crear','notificaciones.ver')
 ON CONFLICT (rol_id, mod_id) DO NOTHING;
 
--- VetData: Admin → todos los módulos
+-- VetData: Admin → ALL modules
 INSERT INTO "tblRoleModules_RMO" (rol_id, mod_id, created_at)
 SELECT r.rol_id, m.mod_id, NOW()
-FROM "tblRoles_ROL" r
-JOIN "tblApplications_APP" a ON a.app_id = r.app_id
-JOIN "tblModules_MOD" m ON m.app_id = a.app_id
-WHERE a.app_code = 'VETDATA' AND r.rol_name = 'Admin'
-  AND m.mod_status = 'active'
+FROM "tblRoles_ROL" r JOIN "tblApplications_APP" a ON a.app_id = r.app_id JOIN "tblModules_MOD" m ON m.app_id = a.app_id
+WHERE a.app_code = 'VETDATA' AND r.rol_name = 'Admin' AND m.mod_status = 'active'
 ON CONFLICT (rol_id, mod_id) DO NOTHING;
 
 -- VetData: Veterinario
 INSERT INTO "tblRoleModules_RMO" (rol_id, mod_id, created_at)
 SELECT r.rol_id, m.mod_id, NOW()
-FROM "tblRoles_ROL" r
-JOIN "tblApplications_APP" a ON a.app_id = r.app_id
-JOIN "tblModules_MOD" m ON m.app_id = a.app_id
+FROM "tblRoles_ROL" r JOIN "tblApplications_APP" a ON a.app_id = r.app_id JOIN "tblModules_MOD" m ON m.app_id = a.app_id
 WHERE a.app_code = 'VETDATA' AND r.rol_name = 'Veterinario'
-  AND m.mod_name IN (
-    'clientes.ver', 'clientes.crear',
-    'mascotas.ver', 'mascotas.crear',
-    'vacunas.ver', 'vacunas.crear', 'vacunas.aplicar',
-    'medicamentos.ver', 'medicamentos.crear',
-    'tickets.ver', 'tickets.responder',
-    'consultas.ver', 'consultas.crear',
-    'cirugias.ver', 'cirugias.crear',
-    'libro.ver', 'libro.crear',
-    'agenda.ver', 'agenda.crear'
-  )
+  AND m.mod_name IN ('clientes.ver','clientes.crear','mascotas.ver','mascotas.crear','vacunas.ver','vacunas.crear','vacunas.aplicar','medicamentos.ver','medicamentos.crear','tickets.ver','tickets.responder','consultas.ver','consultas.crear','cirugias.ver','cirugias.crear','libro.ver','libro.crear','agenda.ver','agenda.crear')
 ON CONFLICT (rol_id, mod_id) DO NOTHING;
 
 -- VetData: Asistente
 INSERT INTO "tblRoleModules_RMO" (rol_id, mod_id, created_at)
 SELECT r.rol_id, m.mod_id, NOW()
-FROM "tblRoles_ROL" r
-JOIN "tblApplications_APP" a ON a.app_id = r.app_id
-JOIN "tblModules_MOD" m ON m.app_id = a.app_id
+FROM "tblRoles_ROL" r JOIN "tblApplications_APP" a ON a.app_id = r.app_id JOIN "tblModules_MOD" m ON m.app_id = a.app_id
 WHERE a.app_code = 'VETDATA' AND r.rol_name = 'Asistente'
-  AND m.mod_name IN (
-    'clientes.ver', 'mascotas.ver',
-    'vacunas.ver', 'vacunas.aplicar',
-    'medicamentos.ver', 'medicamentos.crear',
-    'consultas.ver', 'cirugias.ver', 'libro.ver', 'agenda.ver'
-  )
+  AND m.mod_name IN ('clientes.ver','mascotas.ver','vacunas.ver','vacunas.aplicar','medicamentos.ver','medicamentos.crear','consultas.ver','cirugias.ver','libro.ver','agenda.ver')
 ON CONFLICT (rol_id, mod_id) DO NOTHING;
 
 -- VetData: Recepcionista
 INSERT INTO "tblRoleModules_RMO" (rol_id, mod_id, created_at)
 SELECT r.rol_id, m.mod_id, NOW()
-FROM "tblRoles_ROL" r
-JOIN "tblApplications_APP" a ON a.app_id = r.app_id
-JOIN "tblModules_MOD" m ON m.app_id = a.app_id
+FROM "tblRoles_ROL" r JOIN "tblApplications_APP" a ON a.app_id = r.app_id JOIN "tblModules_MOD" m ON m.app_id = a.app_id
 WHERE a.app_code = 'VETDATA' AND r.rol_name = 'Recepcionista'
-  AND m.mod_name IN (
-    'clientes.ver', 'clientes.crear',
-    'mascotas.ver', 'vacunas.ver',
-    'tickets.ver', 'tickets.responder',
-    'inventario.ver', 'agenda.ver', 'agenda.crear'
-  )
+  AND m.mod_name IN ('clientes.ver','clientes.crear','mascotas.ver','vacunas.ver','tickets.ver','tickets.responder','inventario.ver','agenda.ver','agenda.crear')
 ON CONFLICT (rol_id, mod_id) DO NOTHING;
 
 -- VetData: Cliente (read-only personal)
 INSERT INTO "tblRoleModules_RMO" (rol_id, mod_id, created_at)
 SELECT r.rol_id, m.mod_id, NOW()
-FROM "tblRoles_ROL" r
-JOIN "tblApplications_APP" a ON a.app_id = r.app_id
-JOIN "tblModules_MOD" m ON m.app_id = a.app_id
+FROM "tblRoles_ROL" r JOIN "tblApplications_APP" a ON a.app_id = r.app_id JOIN "tblModules_MOD" m ON m.app_id = a.app_id
 WHERE a.app_code = 'VETDATA' AND r.rol_name = 'Cliente'
-  AND m.mod_name IN ('mascotas.ver', 'vacunas.ver', 'medicamentos.ver', 'libro.ver')
+  AND m.mod_name IN ('mascotas.ver','vacunas.ver','medicamentos.ver','libro.ver')
 ON CONFLICT (rol_id, mod_id) DO NOTHING;
 
 -- =============================================================
--- SECTION 10: SEED DATA — ARTICDEV COMPANY + ADMIN USER SETUP
--- Note: The super-admin user is created by Go's SeedSuperAdmin()
--- at runtime using SUPER_ADMIN_USER env var. This section only
--- ensures the ArticDev company and branch exist. The role
--- assignment is done after the user exists.
+-- SECTION 10: SEED DATA — ARTICDEV COMPANY + LICENSES
 -- =============================================================
 
 INSERT INTO "tblCompanies_COM" (com_name, com_status, created_at, updated_at)
@@ -562,5 +489,12 @@ INSERT INTO "tblBranches_BRA" (com_id, bra_code, bra_name, bra_address, bra_stat
 SELECT c.com_id, 'AD-001', 'Casa Matriz', 'San José, Costa Rica', 'active', NOW(), NOW()
 FROM "tblCompanies_COM" c WHERE c.com_name = 'ArticDev'
 ON CONFLICT (com_id, bra_code) DO NOTHING;
+
+-- ArticDev gets all applications licensed
+INSERT INTO "tblCompanyApplications_CAP" (com_id, app_id, cap_status)
+SELECT c.com_id, a.app_id, 'active'
+FROM "tblCompanies_COM" c, "tblApplications_APP" a
+WHERE c.com_name = 'ArticDev' AND a.app_status = 'active'
+ON CONFLICT (com_id, app_id) DO NOTHING;
 
 COMMIT;

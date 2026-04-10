@@ -124,20 +124,21 @@ func main() {
 	roleRepo := repository.NewRoleRepository(database)
 	resetRepo := repository.NewPasswordResetRepository(database)
 	demoLinkRepo := repository.NewDemoLinkRepository(database)
+	companyAppRepo := repository.NewCompanyApplicationRepository(database)
 
 	// ── Services ─────────────────────────────────────────────────────────────
 	emailSvc := service.NewEmailService(cfg)
-	authSvc := service.NewAuthService(userRepo, personRepo, moduleRepo, resetRepo, emailSvc, cfg, cfg.JWTSecret, cfg.SuperAdminUser)
+	authSvc := service.NewAuthService(userRepo, personRepo, moduleRepo, resetRepo, companyRepo, emailSvc, cfg, cfg.JWTSecret, cfg.SuperAdminUser)
 	userSvc := service.NewUserService(database, userRepo, personRepo, companyUserRepo, emailSvc, cfg)
-	companySvc := service.NewCompanyService(database, companyRepo, branchRepo, companyUserRepo, roleRepo, personRepo, userRepo, cfg.SuperAdminUser)
-	appSvc := service.NewApplicationService(appRepo, moduleRepo)
-	roleSvc := service.NewRoleService(roleRepo, appRepo)
+	companySvc := service.NewCompanyService(database, companyRepo, branchRepo, companyUserRepo, roleRepo, personRepo, userRepo, companyAppRepo, cfg.SuperAdminUser)
+	appSvc := service.NewApplicationService(appRepo, moduleRepo, companyAppRepo)
+	roleSvc := service.NewRoleService(roleRepo, appRepo, moduleRepo, companyAppRepo)
 	demoLinkSvc := service.NewDemoLinkService(demoLinkRepo, cfg.JWTSecret, emailSvc, cfg)
 
 	// ── Handlers ─────────────────────────────────────────────────────────────
 	authHandler := handler.NewAuthHandler(authSvc, companySvc, userSvc)
 	userHandler := handler.NewUserHandler(userSvc)
-	companyHandler := handler.NewCompanyHandler(companySvc)
+	companyHandler := handler.NewCompanyHandler(companySvc, companyAppRepo)
 	appHandler := handler.NewApplicationHandler(appSvc)
 	roleHandler := handler.NewRoleHandler(roleSvc)
 	statsHandler := handler.NewStatsHandler(database)

@@ -9,7 +9,7 @@
 -- =============================================================
 
 WITH app AS (
-    SELECT app_id FROM "tblApplications_APP" WHERE app_code = 'OftaData'
+    SELECT app_id FROM "tblApplications_APP" WHERE app_code = 'OFTADATA'
 )
 INSERT INTO "tblModules_MOD"
     (app_id, mod_name, mod_display_name, mod_description, mod_status, created_at, updated_at)

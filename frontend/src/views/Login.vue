@@ -23,11 +23,45 @@
           <span class="inline-block bg-slate-100 text-slate-500 text-xs font-semibold px-3 py-1 rounded-full mb-4 uppercase tracking-wider">
             Acceso restringido
           </span>
-          <h1 class="text-2xl font-bold text-slate-900">Accede a tu empresa</h1>
-          <p class="text-slate-500 text-sm mt-1">Solo miembros del equipo ArticDev</p>
+
+          <!-- Company selector header (post-login step) -->
+          <template v-if="authStore.pendingCompanySelection">
+            <h1 class="text-2xl font-bold text-slate-900">Selecciona tu empresa</h1>
+            <p class="text-slate-500 text-sm mt-1">Tienes acceso a múltiples empresas. ¿A cuál deseas ingresar?</p>
+          </template>
+          <template v-else>
+            <h1 class="text-2xl font-bold text-slate-900">Accede a tu empresa</h1>
+            <p class="text-slate-500 text-sm mt-1">Solo miembros del equipo ArticDev</p>
+          </template>
         </div>
 
-        <form @submit.prevent="handleLogin" class="space-y-5">
+        <!-- ── Company selector ──────────────────────────────────────────── -->
+        <div v-if="authStore.pendingCompanySelection" class="space-y-3">
+          <div v-if="errorMsg" class="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+            {{ errorMsg }}
+          </div>
+          <button
+            v-for="company in authStore.availableCompanies"
+            :key="company.id"
+            :disabled="authStore.isLoading"
+            @click="handleSelectCompany(company.id)"
+            class="w-full flex items-center justify-between rounded-xl border border-slate-200 px-5 py-4 text-left hover:border-nordic-cyan hover:bg-nordic-cyan/5 focus:outline-none focus:ring-2 focus:ring-nordic-cyan transition-all disabled:opacity-50"
+          >
+            <span class="font-semibold text-slate-800">{{ company.name }}</span>
+            <span :class="company.status === 'active' ? 'text-emerald-500' : 'text-slate-400'" class="text-xs font-medium">
+              {{ company.status === 'active' ? 'Activa' : 'Inactiva' }}
+            </span>
+          </button>
+          <button
+            @click="authStore.logout()"
+            class="w-full text-center text-sm text-slate-400 hover:text-slate-600 transition-colors pt-2"
+          >
+            Volver al inicio de sesión
+          </button>
+        </div>
+
+        <!-- ── Login form ─────────────────────────────────────────────────── -->
+        <form v-else @submit.prevent="handleLogin" class="space-y-5">
           <!-- Error banner -->
           <div v-if="errorMsg" class="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
             {{ errorMsg }}
@@ -125,7 +159,7 @@ function validate() {
   return !fieldErr.username && !fieldErr.password
 }
 
-// ── Submit ─────────────────────────────────────────────────────────────────
+// ── Submit de login ────────────────────────────────────────────────────────
 const handleLogin = async () => {
   errorMsg.value = ''
   if (!validate()) return
@@ -133,11 +167,25 @@ const handleLogin = async () => {
   isLoading.value = true
   try {
     await authStore.login({ username: form.username.trim(), password: form.password })
-    router.push({ name: 'dashboard' })
+    // If the user belongs to multiple companies, stay on this page to show the selector.
+    if (!authStore.pendingCompanySelection) {
+      router.push({ name: 'dashboard' })
+    }
   } catch (err) {
     errorMsg.value = teError(err)
   } finally {
     isLoading.value = false
+  }
+}
+
+// ── Selección de empresa (paso 2 para usuarios multi-empresa) ──────────────
+const handleSelectCompany = async (companyId) => {
+  errorMsg.value = ''
+  try {
+    await authStore.selectCompany(companyId)
+    router.push({ name: 'dashboard' })
+  } catch (err) {
+    errorMsg.value = teError(err)
   }
 }
 </script>

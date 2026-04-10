@@ -2,8 +2,10 @@ package handler
 
 import (
 	"net/http"
+	"strconv"
 
 	"articnexus/backend/internal/domain"
+	"articnexus/backend/internal/middleware"
 	"articnexus/backend/internal/service"
 )
 
@@ -21,9 +23,21 @@ func NewRoleHandler(roleService service.RoleService) *RoleHandler {
 
 // GetAll godoc
 // GET /api/v1/roles
+// Accepts optional ?company_id=X query param to filter roles by the apps
+// licensed for that company. When absent, falls back to the JWT com_id.
 func (h *RoleHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 	params := paginationFromQuery(r)
-	roles, total, err := h.roleService.GetAll(params)
+	companyID, _ := middleware.CompanyIDFromContext(r.Context())
+
+	// Allow an explicit company_id query param to override the JWT value.
+	// This is used when the super-admin views a specific company's roles.
+	if qv := r.URL.Query().Get("company_id"); qv != "" {
+		if parsed, err := strconv.ParseInt(qv, 10, 64); err == nil && parsed > 0 {
+			companyID = parsed
+		}
+	}
+
+	roles, total, err := h.roleService.GetAll(companyID, params)
 	if err != nil {
 		renderInternalError(w)
 		return
@@ -56,6 +70,10 @@ func (h *RoleHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var req domain.CreateRoleRequest
 	if !decodeJSON(w, r, &req) {
 		return
+	}
+	// Inject company scope from JWT so the service can enforce app licensing.
+	if comID, ok := middleware.CompanyIDFromContext(r.Context()); ok {
+		req.CompanyID = comID
 	}
 	role, err := h.roleService.Create(req)
 	if err != nil {

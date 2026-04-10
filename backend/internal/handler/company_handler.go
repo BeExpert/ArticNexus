@@ -5,17 +5,19 @@ import (
 	"strconv"
 
 	"articnexus/backend/internal/domain"
+	"articnexus/backend/internal/repository"
 	"articnexus/backend/internal/service"
 )
 
 // CompanyHandler handles /companies/* routes including branches sub-routes.
 type CompanyHandler struct {
 	companyService service.CompanyService
+	companyAppRepo repository.CompanyApplicationRepository
 }
 
 // NewCompanyHandler returns a new CompanyHandler.
-func NewCompanyHandler(companyService service.CompanyService) *CompanyHandler {
-	return &CompanyHandler{companyService: companyService}
+func NewCompanyHandler(companyService service.CompanyService, companyAppRepo repository.CompanyApplicationRepository) *CompanyHandler {
+	return &CompanyHandler{companyService: companyService, companyAppRepo: companyAppRepo}
 }
 
 // ─── Companies ────────────────────────────────────────────────────────────────
@@ -351,4 +353,117 @@ func (h *CompanyHandler) RemoveUserRole(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	renderOK(w, nil, "role removed from user")
+}
+
+// ─── Company Applications (licensing) ────────────────────────────────────────
+
+// GetCompanyApps godoc
+// GET /api/v1/companies/{id}/applications
+func (h *CompanyHandler) GetCompanyApps(w http.ResponseWriter, r *http.Request) {
+	companyID, ok := urlParamInt64(w, r, "id")
+	if !ok {
+		return
+	}
+	apps, err := h.companyAppRepo.GetByCompanyID(companyID)
+	if err != nil {
+		renderInternalError(w)
+		return
+	}
+	if apps == nil {
+		apps = []domain.CompanyAppDetail{}
+	}
+	renderOK(w, apps, "")
+}
+
+// AddCompanyApp godoc
+// POST /api/v1/companies/{id}/applications
+func (h *CompanyHandler) AddCompanyApp(w http.ResponseWriter, r *http.Request) {
+	companyID, ok := urlParamInt64(w, r, "id")
+	if !ok {
+		return
+	}
+	var req domain.AddCompanyAppRequest
+	if !decodeJSON(w, r, &req) {
+		return
+	}
+	if req.AppID == 0 {
+		renderBadRequest(w, "appId is required")
+		return
+	}
+	ca := &domain.CompanyApplication{
+		CompanyID: companyID,
+		AppID:     req.AppID,
+		Status:    "active",
+	}
+	if err := h.companyAppRepo.Create(ca); err != nil {
+		if isDuplicate(err) {
+			renderErrorCode(w, http.StatusConflict, domain.ErrCodeConflictDuplicate, "esta aplicación ya está asignada a la empresa", nil)
+			return
+		}
+		renderInternalError(w)
+		return
+	}
+	renderCreated(w, nil, "application licensed to company")
+}
+
+// UpdateCompanyAppStatus godoc
+// PATCH /api/v1/companies/{id}/applications/{appId}
+func (h *CompanyHandler) UpdateCompanyAppStatus(w http.ResponseWriter, r *http.Request) {
+	companyID, ok := urlParamInt64(w, r, "id")
+	if !ok {
+		return
+	}
+	appID, ok := urlParamInt64(w, r, "appId")
+	if !ok {
+		return
+	}
+	// Prevent modifying ARTICNEXUS license
+	if code, err := h.companyAppRepo.GetAppCodeByID(appID); err == nil && code == "ARTICNEXUS" {
+		renderErrorCode(w, http.StatusForbidden, "FORBIDDEN", "no se puede modificar la licencia de ARTICNEXUS", nil)
+		return
+	}
+	var req domain.UpdateCompanyAppStatusRequest
+	if !decodeJSON(w, r, &req) {
+		return
+	}
+	if req.Status != "active" && req.Status != "inactive" {
+		renderBadRequest(w, "status must be 'active' or 'inactive'")
+		return
+	}
+	if err := h.companyAppRepo.UpdateStatus(companyID, appID, req.Status); err != nil {
+		if isNotFound(err) {
+			renderNotFound(w)
+			return
+		}
+		renderInternalError(w)
+		return
+	}
+	renderOK(w, nil, "license status updated")
+}
+
+// RemoveCompanyApp godoc
+// DELETE /api/v1/companies/{id}/applications/{appId}
+func (h *CompanyHandler) RemoveCompanyApp(w http.ResponseWriter, r *http.Request) {
+	companyID, ok := urlParamInt64(w, r, "id")
+	if !ok {
+		return
+	}
+	appID, ok := urlParamInt64(w, r, "appId")
+	if !ok {
+		return
+	}
+	// Prevent removing ARTICNEXUS license
+	if code, err := h.companyAppRepo.GetAppCodeByID(appID); err == nil && code == "ARTICNEXUS" {
+		renderErrorCode(w, http.StatusForbidden, "FORBIDDEN", "no se puede eliminar la licencia de ARTICNEXUS", nil)
+		return
+	}
+	if err := h.companyAppRepo.Delete(companyID, appID); err != nil {
+		if isNotFound(err) {
+			renderNotFound(w)
+			return
+		}
+		renderInternalError(w)
+		return
+	}
+	renderOK(w, nil, "application license removed")
 }

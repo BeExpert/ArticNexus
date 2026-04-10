@@ -18,6 +18,10 @@ type CreateCompanyRequest struct {
 	Name   string  `json:"name"   validate:"required,max=255"`
 	Status *string `json:"status"`
 
+	// ApplicationIDs lists the apps to license for this company.
+	// If empty, defaults to ARTICNEXUS only (the management app).
+	ApplicationIDs []int64 `json:"applicationIds,omitempty"`
+
 	// Optional: create an admin user for the company in a single step.
 	Admin *CreateCompanyAdminRequest `json:"admin,omitempty"`
 }

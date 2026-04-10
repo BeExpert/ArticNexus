@@ -154,15 +154,19 @@
               <thead>
                 <tr class="bg-slate-800">
                   <th class="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-300 w-12 hidden sm:table-cell">#</th>
-                  <th class="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-300">Nombre</th>
+                  <th @click="toggleModSort('displayName')" class="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-300 cursor-pointer hover:text-white select-none">
+                    Nombre <span class="ml-1 text-slate-500">{{ modSortIcon('displayName') }}</span>
+                  </th>
                   <th class="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-300 w-32 hidden md:table-cell">Opción de menú</th>
                   <th class="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-300 w-32 hidden md:table-cell">Sub-función</th>
-                  <th class="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-300 w-20">Estado</th>
+                  <th @click="toggleModSort('status')" class="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-300 w-20 cursor-pointer hover:text-white select-none">
+                    Estado <span class="ml-1 text-slate-500">{{ modSortIcon('status') }}</span>
+                  </th>
                   <th v-if="authStore.canAny('modulos.editar', 'modulos.eliminar')" class="px-4 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wide text-slate-300 w-32">Acciones</th>
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="m in modules" :key="m.id" class="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors">
+                <tr v-for="m in sortedModules" :key="m.id" class="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors">
                   <td class="px-4 py-3 text-slate-400 tabular-nums hidden sm:table-cell">{{ m.id }}</td>
                   <td class="px-4 py-3 font-medium text-slate-900">
                     {{ m.displayName || m.name }}
@@ -484,7 +488,36 @@ async function doDelete() {
 const modules        = ref([])
 const loadingModules = ref(false)
 const detailError    = ref('')
+// Modules sort state
+const modSortKey = ref('displayName')
+const modSortDir = ref('asc')
 
+function toggleModSort(key) {
+  if (modSortKey.value === key) {
+    modSortDir.value = modSortDir.value === 'asc' ? 'desc' : 'asc'
+  } else {
+    modSortKey.value = key
+    modSortDir.value = 'asc'
+  }
+}
+
+function modSortIcon(key) {
+  if (modSortKey.value !== key) return '↕'
+  return modSortDir.value === 'asc' ? '↑' : '↓'
+}
+
+const sortedModules = computed(() => {
+  const dir = modSortDir.value === 'asc' ? 1 : -1
+  return [...modules.value].sort((a, b) => {
+    const av = modSortKey.value === 'displayName'
+      ? (a.displayName || a.name).toLowerCase()
+      : (a[modSortKey.value] ?? '').toLowerCase()
+    const bv = modSortKey.value === 'displayName'
+      ? (b.displayName || b.name).toLowerCase()
+      : (b[modSortKey.value] ?? '').toLowerCase()
+    return av < bv ? -dir : av > bv ? dir : 0
+  })
+})
 async function loadModules(appId) {
   loadingModules.value = true
   detailError.value = ''
