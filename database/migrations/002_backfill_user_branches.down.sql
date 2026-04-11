@@ -1,0 +1,2 @@
+-- No-op: the backfill inserted rows that should have existed from the start.
+-- Rolling back would recreate the data inconsistency.

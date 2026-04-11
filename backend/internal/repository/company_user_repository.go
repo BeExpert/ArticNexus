@@ -19,6 +19,9 @@ type CompanyUserRepository interface {
 	FindUserRolesForUser(companyID, userID int64) ([]domain.UserRole, error)
 	AssignUserRole(ur domain.UserRole) error
 	RemoveUserRole(ur domain.UserRole) error
+
+	// Branch membership.
+	EnsureUserBranch(userID, branchID int64) error
 }
 
 type companyUserRepository struct {
@@ -71,6 +74,12 @@ func (r *companyUserRepository) FindUserRolesForUser(companyID, userID int64) ([
 	var urs []domain.UserRole
 	err := r.db.Where("com_id = ? AND usr_id = ?", companyID, userID).Find(&urs).Error
 	return urs, err
+}
+
+func (r *companyUserRepository) EnsureUserBranch(userID, branchID int64) error {
+	ub := domain.UserBranch{UserID: userID, BranchID: branchID}
+	result := r.db.Where("usr_id = ? AND bra_id = ?", userID, branchID).FirstOrCreate(&ub)
+	return result.Error
 }
 
 func (r *companyUserRepository) AssignUserRole(ur domain.UserRole) error {

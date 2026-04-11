@@ -176,6 +176,9 @@ func (s *companyService) Create(req domain.CreateCompanyRequest) (*domain.Compan
 			var role domain.Role
 			if err := tx.Where("rol_name = ? AND app_id = (SELECT app_id FROM \"tblApplications_APP\" WHERE app_code = 'ARTICNEXUS')",
 				"Administrador de Empresa").First(&role).Error; err == nil {
+				if err := companyUserRepo.EnsureUserBranch(user.ID, branch.ID); err != nil {
+					return fmt.Errorf("could not link user to branch: %w", err)
+				}
 				ur := domain.UserRole{
 					UserID:    user.ID,
 					CompanyID: company.ID,
@@ -461,6 +464,11 @@ func (s *companyService) AssignUserRole(companyID, userID int64, req domain.Assi
 	}
 	if !linked {
 		return domain.ErrValidation(domain.ErrCodeUserNotInCompany, "user does not belong to this company")
+	}
+	// Ensure user-branch visibility record exists (apps query tblUserBranches_UBR
+	// to resolve which branches a user can see).
+	if err := s.companyUserRepo.EnsureUserBranch(userID, req.BranchID); err != nil {
+		return fmt.Errorf("ensure user-branch: %w", err)
 	}
 	return s.companyUserRepo.AssignUserRole(domain.UserRole{
 		UserID:    userID,
